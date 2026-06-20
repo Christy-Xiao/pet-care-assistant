@@ -30,7 +30,7 @@ export function generateToken(): string {
 
 // 设置 session（存入数据库）
 export async function setSession(token: string, session: Session): Promise<void> {
-  await execute(
+  await insert(
     'INSERT INTO sessions (token, user_id, expires_at) VALUES (?, ?, ?)',
     [token, session.userId, session.expiresAt]
   );

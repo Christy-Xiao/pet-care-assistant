@@ -88,23 +88,14 @@ export async function insert(sql: string, params?: any[]): Promise<{ insertId?: 
       rowData[col] = params![i];
     });
 
-    let result;
-
-    if (sql.includes('RETURNING')) {
-      const { data, error } = await supabase.from(parsed.table).insert(rowData).select();
-      if (error) throw new Error(`Insert error: ${error.message}`);
-      result = {
-        insertId: data?.[0]?.id,
-        affectedRows: data?.length ?? 0,
-      };
-    } else {
-      const { data, error } = await supabase.from(parsed.table).insert(rowData);
-      if (error) throw new Error(`Insert error: ${error.message}`);
-      result = {
-        insertId: undefined,
-        affectedRows: data ? 1 : 0,
-      };
-    }
+    // 始终使用 .select() 获取插入后的数据（包括自增ID）
+    const { data, error } = await supabase.from(parsed.table).insert(rowData).select();
+    if (error) throw new Error(`Insert error: ${error.message}`);
+    
+    const result = {
+      insertId: data?.[0]?.id,
+      affectedRows: data?.length ?? 0,
+    };
 
     return result;
   }
