@@ -218,10 +218,11 @@ async function generateHealthReport(pet: any, medicalRecords: any[], healthRecor
   // 3. 饮食分析
   let dietAnalysis = '';
   if (dietRecords.length > 0) {
-    const mealCounts = { breakfast: 0, lunch: 0, dinner: 0, snack: 0 };
+    const mealCounts: Record<string, number> = { breakfast: 0, lunch: 0, dinner: 0, snack: 0 };
     dietRecords.forEach(r => {
-      if (mealCounts[r.meal_type] !== undefined) {
-        mealCounts[r.meal_type]++;
+      const mealType = String(r.meal_type);
+      if (mealCounts[mealType] !== undefined) {
+        mealCounts[mealType]++;
       }
     });
     
