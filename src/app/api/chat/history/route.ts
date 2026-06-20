@@ -31,7 +31,7 @@ export async function GET(request: NextRequest) {
       if (!sessionMap.has(sid)) {
         sessionMap.set(sid, []);
       }
-      sessionMap.get(sid).push({
+      sessionMap.get(sid)!.push({
         id: `msg_${row.id}`,
         role: row.role,
         content: row.content,
