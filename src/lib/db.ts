@@ -7,7 +7,7 @@ const pool = new Pool({
   user: process.env.DB_USER || 'postgres',
   password: process.env.DB_PASSWORD || '',
   database: process.env.DB_NAME || 'postgres',
-  ssl: process.env.DB_SSL === 'true' ? { rejectUnauthorized: false } : undefined,
+  ssl: { rejectUnauthorized: false }, // Supabase 强制需要 SSL，生产环境始终启用
   max: 5,
   idleTimeoutMillis: 60000,
   connectionTimeoutMillis: 10000,
