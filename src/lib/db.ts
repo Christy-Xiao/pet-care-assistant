@@ -85,7 +85,7 @@ export async function insert(sql: string, params?: any[]): Promise<{ insertId?: 
   if (parsed.table) {
     const rowData: Record<string, any> = {};
     parsed.columns.forEach((col, i) => {
-      rowData[col] => params![i];
+      rowData[col] = params![i];
     });
 
     let result;
