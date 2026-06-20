@@ -189,8 +189,8 @@ async function generateHealthReport(pet: any, medicalRecords: any[], healthRecor
     const sortedWeights = [...weightRecords].sort((a, b) => 
       new Date(a.recorded_at).getTime() - new Date(b.recorded_at).getTime()
     );
-    const firstWeight = sortedWeights[0].weight;
-    const lastWeight = sortedWeights[sortedWeights.length - 1].weight;
+    const firstWeight = sortedWeights[0]!.weight;
+    const lastWeight = sortedWeights[sortedWeights.length - 1]!.weight;
     const weightChange = lastWeight - firstWeight;
     const weightChangePercent = ((weightChange / firstWeight) * 100).toFixed(1);
     
@@ -210,7 +210,7 @@ async function generateHealthReport(pet: any, medicalRecords: any[], healthRecor
       weightAnalysis += '\n✅ 体重变化在正常范围内。';
     }
   } else if (weightRecords.length === 1) {
-    weightAnalysis = `体重趋势：7天内仅有1次体重记录，当前体重为${weightRecords[0].weight}kg。建议持续记录以便观察体重变化趋势。`;
+    weightAnalysis = `体重趋势：7天内仅有1次体重记录，当前体重为${weightRecords[0]!.weight}kg。建议持续记录以便观察体重变化趋势。`;
   } else {
     weightAnalysis = '体重趋势：本周暂无体重记录，建议定期记录体重以跟踪健康状况。';
   }
@@ -365,7 +365,7 @@ async function generateHealthReport(pet: any, medicalRecords: any[], healthRecor
     const sortedWeights = [...weightRecords].sort((a, b) => 
       new Date(a.recorded_at).getTime() - new Date(b.recorded_at).getTime()
     );
-    const weightChangePercent = Math.abs(((sortedWeights[sortedWeights.length - 1].weight - sortedWeights[0].weight) / sortedWeights[0].weight) * 100);
+    const weightChangePercent = Math.abs(((sortedWeights[sortedWeights.length - 1]!.weight - sortedWeights[0]!.weight) / sortedWeights[0]!.weight) * 100);
     
     if (weightChangePercent >= 5) {
       issues.push('体重变化幅度较大');
@@ -1281,7 +1281,7 @@ async function createMedicationReminderFromRecord(petId: string, petName: string
     
     // 获取最新的活跃病例
     const activeRecords = medicalRecords.filter((r: any) => r.status === 'active');
-    const latestRecord = activeRecords.length > 0 ? activeRecords[0] : medicalRecords[0];
+    const latestRecord = activeRecords.length > 0 ? activeRecords[0]! : medicalRecords[0]!;
     
     if (!latestRecord.medications || latestRecord.medications.length === 0) {
       return {

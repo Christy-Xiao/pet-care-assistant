@@ -78,7 +78,7 @@ export async function POST(request: NextRequest) {
     await execute('UPDATE pets SET weight = ? WHERE id = ?', [weight, pet_id]);
 
     const newRecord: any[] = await query('SELECT * FROM weight_records WHERE id = ?', [id]);
-    return NextResponse.json(newRecord[0], { status: 201 });
+    return NextResponse.json(newRecord[0]!, { status: 201 });
   } catch (error) {
     console.error('Error creating weight record:', error);
     return NextResponse.json({ error: 'Failed to create weight record' }, { status: 500 });

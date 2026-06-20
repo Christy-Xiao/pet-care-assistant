@@ -60,7 +60,7 @@ export async function POST(request: NextRequest) {
     );
 
     const newRecord: any[] = await query('SELECT * FROM medical_records WHERE id = ?', [id]);
-    const record = newRecord[0];
+    const record = newRecord[0]!;
     const parsedRecord = {
       ...record,
       medications: typeof record.medications === 'string' ? JSON.parse(record.medications) : record.medications,

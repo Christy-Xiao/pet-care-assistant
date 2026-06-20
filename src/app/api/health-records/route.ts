@@ -120,7 +120,7 @@ export async function POST(request: NextRequest) {
     await insert(insertSql, [id, pet_id, type, title, description, image_url, medicationsJson]);
 
     const newRecord: any[] = await query('SELECT * FROM health_records WHERE id = ?', [id]);
-    const record = newRecord[0];
+    const record = newRecord[0]!;
     
     // 解析 medications 字段，兼容旧数据（逗号分隔）和新数据（JSON格式）
     let parsedMedications: string[] = [];

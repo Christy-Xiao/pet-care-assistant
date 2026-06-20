@@ -113,7 +113,7 @@ export async function saveUserLongTermMemory(
       // 已存在，更新时间和关联宠物
       await execute(
         `UPDATE user_long_term_memory SET pet_id = ?, pet_name = ?, updated_at = NOW() WHERE id = ?`,
-        [petId || null, petName || null, existing[0].id]
+        [petId || null, petName || null, existing[0]!.id]
       );
     } else {
       // 新增记忆

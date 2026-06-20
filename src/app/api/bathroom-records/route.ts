@@ -93,7 +93,7 @@ export async function POST(request: NextRequest) {
     );
 
     const newRecord: any[] = await query('SELECT * FROM bathroom_records WHERE id = ?', [id]);
-    return NextResponse.json(newRecord[0], { status: 201 });
+    return NextResponse.json(newRecord[0]!, { status: 201 });
   } catch (error) {
     console.error('Error creating bathroom record:', error);
     return NextResponse.json({ error: 'Failed to create bathroom record' }, { status: 500 });

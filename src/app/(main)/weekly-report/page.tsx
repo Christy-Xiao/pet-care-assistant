@@ -150,8 +150,8 @@ export default function WeeklyReportPage() {
         
         if (targetWeekWeight.length > 0 && prevWeekWeight.length > 0) {
           // 目标周和前一周都有数据，计算变化
-          displayWeight = parseFloat(targetWeekWeight[0].weight);
-          const previousWeight = parseFloat(prevWeekWeight[0].weight);
+          displayWeight = parseFloat(targetWeekWeight[0]!.weight);
+          const previousWeight = parseFloat(prevWeekWeight[0]!.weight);
           
           if (previousWeight > 0) {
             weightChange = displayWeight - previousWeight;
@@ -172,11 +172,11 @@ export default function WeeklyReportPage() {
           }
         } else if (targetWeekWeight.length > 0) {
           // 只有目标周有体重记录
-          displayWeight = parseFloat(targetWeekWeight[0].weight);
+          displayWeight = parseFloat(targetWeekWeight[0]!.weight);
           weightAlert = '📊 已有该周体重记录，继续监测变化。';
         } else if (weightData.length > 0) {
           // 有历史体重记录但不在目标周 - 显示最近一条记录
-          displayWeight = parseFloat(weightData[0].weight);
+          displayWeight = parseFloat(weightData[0]!.weight);
           const latestDate = new Date(weightData[0].recorded_at || weightData[0].created_at);
           const weekDiff = Math.round((now.getTime() - latestDate.getTime()) / (7 * 24 * 60 * 60 * 1000));
           if (weekDiff === 0) {

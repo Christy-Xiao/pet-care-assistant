@@ -75,7 +75,7 @@ export default function MedicationReminderWidget({ petId }: MedicationReminderWi
 
     const updateCountdown = () => {
       const now = new Date();
-      const nextDose = new Date(reminders[0].next_dose_time);
+      const nextDose = new Date(reminders[0]!.next_dose_time);
       const diffMs = nextDose.getTime() - now.getTime();
 
       if (diffMs <= 0) {
