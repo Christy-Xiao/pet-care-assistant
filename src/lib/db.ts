@@ -1,6 +1,6 @@
 import mysql from 'mysql2/promise';
 
-// 数据库连接池
+// 数据库连接池（支持 TiDB Cloud SSL）
 const pool = mysql.createPool({
   host: process.env.DB_HOST || 'localhost',
   port: parseInt(process.env.DB_PORT || '3306'),
@@ -10,12 +10,14 @@ const pool = mysql.createPool({
   timezone: '+08:00',
   dateStrings: true,
   waitForConnections: true,
-  connectionLimit: 5,  // 减小连接池大小
-  maxIdle: 5,         // 最大空闲连接数
-  idleTimeout: 60000, // 空闲连接超时（毫秒）
+  connectionLimit: 5,
+  maxIdle: 5,
+  idleTimeout: 60000,
   queueLimit: 0,
   enableKeepAlive: true,
   keepAliveInitialDelay: 0,
+  // TiDB Cloud / 生产环境需要 SSL
+  ssl: process.env.DB_SSL === 'true' ? { rejectUnauthorized: false } : undefined,
 });
 
 // 测试数据库连接
