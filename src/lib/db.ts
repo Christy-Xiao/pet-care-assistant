@@ -126,7 +126,7 @@ export async function execute(sql: string, params?: any[]): Promise<{ affectedRo
   // DELETE
   if (upperSql.startsWith('DELETE')) {
     const parsed = parseDeleteQuery(sql, params!);
-    let q = supabase.from(parsed.table).delete();
+    let q = supabase.from(parsed.table!).delete();
 
     for (const filter of parsed.filters) {
       q = q.eq(filter.column, params![filter.paramIndex]);
@@ -146,7 +146,7 @@ export async function execute(sql: string, params?: any[]): Promise<{ affectedRo
       setData[col] = params![parsed.setStartIndex + i];
     });
 
-    let q = supabase.from(parsed.table).update(setData);
+    let q = supabase.from(parsed.table!).update(setData);
 
     for (const filter of parsed.filters) {
       q = q.eq(filter.column, params![filter.paramIndex]);
