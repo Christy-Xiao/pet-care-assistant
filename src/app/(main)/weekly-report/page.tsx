@@ -137,14 +137,14 @@ export default function WeeklyReportPage() {
           const dateStr = r.recorded_at || r.created_at;
           const date = new Date(dateStr);
           return date >= targetWeekStart && date < targetWeekEnd;
-        }).sort((a: any, b: any) => new Date(b.recorded_at || b.created_at) - new Date(a.recorded_at || b.created_at));
+        }).sort((a: any, b: any) => new Date(b.recorded_at || b.created_at).getTime() - new Date(a.recorded_at || b.created_at));
         
         // 获取上一周的体重记录（用于计算变化）
         const prevWeekWeight = weightData.filter((r: any) => {
           const dateStr = r.recorded_at || r.created_at;
           const date = new Date(dateStr);
           return date >= prevWeekStart && date < prevWeekEnd;
-        }).sort((a: any, b: any) => new Date(b.recorded_at || b.created_at) - new Date(a.recorded_at || b.created_at));
+        }).sort((a: any, b: any) => new Date(b.recorded_at || b.created_at).getTime() - new Date(a.recorded_at || b.created_at));
         
         console.log('📊 目标周体重记录:', targetWeekWeight, '前一周体重记录:', prevWeekWeight);
         
