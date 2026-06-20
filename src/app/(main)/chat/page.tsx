@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Send, Bot, User, Loader2, Sparkles, Trash2, Info, Database, Bell, Plus, MessageSquare, ChevronDown, X, Check, Image, Camera, Scale, PawPrint, Calendar, Heart, Clock, MapPin, HeartPulse, Activity } from 'lucide-react';
 import { generateCareMessage, getTodayFestival, getTomorrowFestival } from '@/lib/care-engine';
 import { useApp } from '@/store/AppContext';
+import ChatLayout from '@/components/ChatLayout';
 
 // 宠物确认卡片组件 - 可编辑版本
 function PetConfirmationCard({ 
@@ -3601,6 +3602,7 @@ ${generateCareMessage(undefined)}
   };
 
   return (
+    <ChatLayout>
     <div className="h-full flex bg-gradient-to-b from-purple-50 to-white">
       {/* 移动端对话列表遮罩 */}
       {showConversationList && (
@@ -4165,5 +4167,6 @@ ${generateCareMessage(undefined)}
         locationName={parkRecommendationModal?.locationName || ''}
       />
     </div>
+    </ChatLayout>
   );
 }

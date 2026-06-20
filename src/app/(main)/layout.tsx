@@ -1,6 +1,7 @@
 import Navbar from '@/components/Navbar';
 import Sidebar from '@/components/Sidebar';
 import ProtectedRoute from '@/components/ProtectedRoute';
+import PWAInstallButton from '@/components/PWAInstallButton';
 
 export default function MainLayout({
   children,
@@ -17,6 +18,7 @@ export default function MainLayout({
             {children}
           </main>
         </div>
+        <PWAInstallButton />
       </div>
     </ProtectedRoute>
   );
