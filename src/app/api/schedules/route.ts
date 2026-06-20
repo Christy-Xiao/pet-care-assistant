@@ -17,7 +17,7 @@ export async function GET(request: NextRequest) {
     }
 
     if (upcoming === 'true') {
-      sql += ' AND status = ? AND due_date >= CURDATE()';
+      sql += ' AND status = ? AND due_date >= CURRENT_DATE';
       params.push('pending');
     }
 

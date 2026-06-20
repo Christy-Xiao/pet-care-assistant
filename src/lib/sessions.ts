@@ -5,18 +5,16 @@ export interface Session {
   expiresAt: Date;
 }
 
-// 初始化 sessions 表
+// 初始化 sessions 表（PostgreSQL 语法）
 export async function initSessionsTable() {
   try {
     await execute(`
       CREATE TABLE IF NOT EXISTS sessions (
-        id INT AUTO_INCREMENT PRIMARY KEY,
+        id SERIAL PRIMARY KEY,
         token VARCHAR(255) UNIQUE NOT NULL,
         user_id INT NOT NULL,
-        expires_at DATETIME NOT NULL,
-        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-        INDEX idx_token (token),
-        INDEX idx_user_id (user_id)
+        expires_at TIMESTAMP NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
     `);
     console.log('✅ sessions 表创建成功');

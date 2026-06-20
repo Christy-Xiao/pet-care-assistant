@@ -1,12 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { query, insert, execute } from '@/lib/db';
-import { getConnection } from '@/lib/db';
 
-// 确保表存在
+// 确保表存在（PostgreSQL 语法）
 async function ensureTableExists() {
   try {
-    const connection = await getConnection();
-    await connection.execute(`
+    await execute(`
       CREATE TABLE IF NOT EXISTS exercise_records (
         id VARCHAR(255) PRIMARY KEY,
         user_id INT,
@@ -17,11 +15,9 @@ async function ensureTableExists() {
         location VARCHAR(255),
         notes TEXT,
         date DATE NOT NULL,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (pet_id) REFERENCES pets(id) ON DELETE CASCADE
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
     `);
-    connection.release();
   } catch (error) {
     console.error('Error creating exercise_records table:', error);
   }

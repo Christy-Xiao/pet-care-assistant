@@ -1,32 +1,28 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { query, insert, execute } from '@/lib/db';
-import { getConnection } from '@/lib/db';
 
-// 确保表存在
+// 确保表存在（PostgreSQL 语法）
 async function ensureTableExists() {
   try {
-    const connection = await getConnection();
-    await connection.execute(`
+    await execute(`
       CREATE TABLE IF NOT EXISTS bathroom_records (
         id VARCHAR(255) PRIMARY KEY,
         user_id INT,
         pet_id VARCHAR(255) NOT NULL,
         record_date DATE NOT NULL,
-        type ENUM('solid', 'liquid', 'both') NOT NULL,
-        size ENUM('small', 'medium', 'large') DEFAULT 'medium',
+        type VARCHAR(10) NOT NULL CHECK (type IN ('solid', 'liquid', 'both')),
+        size VARCHAR(10) DEFAULT 'medium' CHECK (size IN ('small', 'medium', 'large')),
         color VARCHAR(50),
         notes TEXT,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (pet_id) REFERENCES pets(id) ON DELETE CASCADE
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
     `);
-    connection.release();
   } catch (error) {
     console.error('Error creating bathroom_records table:', error);
   }
 }
 
-// GET /api/bathroom-records - 获取排泄记录
+// GET /api/bathroom-records
 export async function GET(request: NextRequest) {
   try {
     await ensureTableExists();
@@ -51,7 +47,6 @@ export async function GET(request: NextRequest) {
     }
 
     const records: any[] = await query(sql, params);
-
     return NextResponse.json(records);
   } catch (error) {
     console.error('Error fetching bathroom records:', error);
@@ -59,21 +54,14 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// POST /api/bathroom-records - 创建排泄记录
+// POST /api/bathroom-records
 export async function POST(request: NextRequest) {
   try {
     await ensureTableExists();
     
     const body = await request.json();
     const id = `bath_${Date.now()}`;
-    const {
-      pet_id,
-      record_date,
-      type,
-      size = 'medium',
-      color = '',
-      notes = '',
-    } = body;
+    const { pet_id, record_date, type, size = 'medium', color = '', notes = '' } = body;
 
     if (!pet_id || !record_date || !type) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
@@ -81,10 +69,6 @@ export async function POST(request: NextRequest) {
 
     if (!['solid', 'liquid', 'both'].includes(type)) {
       return NextResponse.json({ error: 'Invalid type' }, { status: 400 });
-    }
-
-    if (!['small', 'medium', 'large'].includes(size)) {
-      return NextResponse.json({ error: 'Invalid size' }, { status: 400 });
     }
 
     await insert(
@@ -100,7 +84,7 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// PUT /api/bathroom-records - 更新排泄记录
+// PUT /api/bathroom-records
 export async function PUT(request: NextRequest) {
   try {
     const body = await request.json();
@@ -114,35 +98,18 @@ export async function PUT(request: NextRequest) {
     const params: any[] = [];
 
     if (type !== undefined) {
-      if (!['solid', 'liquid', 'both'].includes(type)) {
-        return NextResponse.json({ error: 'Invalid type' }, { status: 400 });
-      }
-      updates.push('type = ?');
-      params.push(type);
+      if (!['solid', 'liquid', 'both'].includes(type)) return NextResponse.json({ error: 'Invalid type' }, { status: 400 });
+      updates.push('type = ?'); params.push(type);
     }
     if (size !== undefined) {
-      if (!['small', 'medium', 'large'].includes(size)) {
-        return NextResponse.json({ error: 'Invalid size' }, { status: 400 });
-      }
-      updates.push('size = ?');
-      params.push(size);
+      if (!['small', 'medium', 'large'].includes(size)) return NextResponse.json({ error: 'Invalid size' }, { status: 400 });
+      updates.push('size = ?'); params.push(size);
     }
-    if (color !== undefined) {
-      updates.push('color = ?');
-      params.push(color);
-    }
-    if (notes !== undefined) {
-      updates.push('notes = ?');
-      params.push(notes);
-    }
-    if (record_date !== undefined) {
-      updates.push('record_date = ?');
-      params.push(record_date);
-    }
+    if (color !== undefined) { updates.push('color = ?'); params.push(color); }
+    if (notes !== undefined) { updates.push('notes = ?'); params.push(notes); }
+    if (record_date !== undefined) { updates.push('record_date = ?'); params.push(record_date); }
 
-    if (updates.length === 0) {
-      return NextResponse.json({ error: 'No fields to update' }, { status: 400 });
-    }
+    if (updates.length === 0) return NextResponse.json({ error: 'No fields to update' }, { status: 400 });
 
     params.push(id);
     await execute(`UPDATE bathroom_records SET ${updates.join(', ')} WHERE id = ?`, params);
@@ -155,21 +122,17 @@ export async function PUT(request: NextRequest) {
   }
 }
 
-// DELETE /api/bathroom-records - 删除排泄记录
+// DELETE /api/bathroom-records
 export async function DELETE(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const id = searchParams.get('id');
 
-    if (!id) {
-      return NextResponse.json({ error: 'Missing record id' }, { status: 400 });
-    }
+    if (!id) return NextResponse.json({ error: 'Missing record id' }, { status: 400 });
 
     const result = await execute('DELETE FROM bathroom_records WHERE id = ?', [id]);
 
-    if (result.affectedRows === 0) {
-      return NextResponse.json({ error: 'Record not found' }, { status: 404 });
-    }
+    if (result.affectedRows === 0) return NextResponse.json({ error: 'Record not found' }, { status: 404 });
 
     return NextResponse.json({ success: true });
   } catch (error) {
