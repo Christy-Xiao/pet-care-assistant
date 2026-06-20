@@ -1,13 +1,17 @@
 import { Pool } from 'pg';
 
-// PostgreSQL 数据库连接池（Supabase 兼容）
+// PostgreSQL 数据库连接池（Supabase Pooler 兼容）
 const pool = new Pool({
   host: process.env.DB_HOST || 'localhost',
   port: parseInt(process.env.DB_PORT || '5432'),
   user: process.env.DB_USER || 'postgres',
   password: process.env.DB_PASSWORD || '',
   database: process.env.DB_NAME || 'postgres',
-  ssl: { rejectUnauthorized: false }, // Supabase 强制需要 SSL，生产环境始终启用
+  // Supabase Pooler 需要 SNI hostname 来识别项目
+  ssl: {
+    rejectUnauthorized: false,
+    servername: process.env.DB_HOST || 'localhost',
+  },
   max: 5,
   idleTimeoutMillis: 60000,
   connectionTimeoutMillis: 10000,
