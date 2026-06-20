@@ -397,8 +397,8 @@ export default function WeatherWidget() {
 
       {/* 主动服务提示 */}
       {(() => {
-        const weatherCode = parseInt(weather?.current?.icon) || 0;
-        const temp = parseInt(weather?.current?.temp) || 25;
+        const weatherCode = parseInt(weather?.current?.icon || '0') || 0;
+        const temp = parseInt(weather?.current?.temp || '25') || 25;
         const isRainy = [51, 53, 55, 61, 63, 65, 80, 81, 82].includes(weatherCode);
         const isGoodWeather = weather?.suggestion?.suitable && weather?.suggestion?.level !== 'bad';
         

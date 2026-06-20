@@ -390,11 +390,11 @@ export async function detectAndUpdatePetAllergy(
       // 获取当前过敏信息
       const currentAllergies = matchedPet.allergies || '';
       const allergiesList = currentAllergies ? 
-        (Array.isArray(currentAllergies) ? currentAllergies : currentAllergies.split(',').map(a => a.trim()).filter(Boolean)) 
+        (Array.isArray(currentAllergies) ? currentAllergies : currentAllergies.split(',').map((a: string) => a.trim()).filter(Boolean)) 
         : [];
       
       // 检查是否已存在（不区分大小写）
-      if (!allergiesList.some(a => a.toLowerCase().includes(allergyInfo.toLowerCase()) || allergyInfo.toLowerCase().includes(a.toLowerCase()))) {
+      if (!allergiesList.some((a: string) => a.toLowerCase().includes(allergyInfo.toLowerCase()) || allergyInfo.toLowerCase().includes(a.toLowerCase()))) {
         allergiesList.push(allergyInfo);
         
         // 更新宠物档案

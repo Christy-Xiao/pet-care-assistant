@@ -151,7 +151,7 @@ export function getCurrentSeason(): string {
  * 获取季节名称
  */
 export function getSeasonName(): string {
-  return SEASONS[getCurrentSeason()].name;
+  return (SEASONS as Record<string, { months: number[]; name: string }>)[getCurrentSeason()].name;
 }
 
 /**

@@ -557,8 +557,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
         'normal': '皮肤健康'
       };
       
-      // 构建标题
-      const diseaseLabel = analysisData.result.diseaseType ? diseaseLabels[analysisData.result.diseaseType] : '';
+      // 构建标题（用类型断言处理扩展属性）
+      const resultAny = analysisData.result as Record<string, any>;
+      const diseaseLabel = resultAny.diseaseType ? diseaseLabels[resultAny.diseaseType] : '';
       const typeLabel = typeLabels[analysisData.analysisType] || '其他';
       const title = diseaseLabel ? `${typeLabel}分析-${diseaseLabel}` : `${typeLabel}分析`;
       
@@ -581,8 +582,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
         console.log('✅ 健康分析已保存到数据库:', savedRecord);
         
         // 如果检测到皮肤病，自动添加到宠物健康档案
-        if (analysisData.result.diseaseType && analysisData.result.diseaseType !== 'normal') {
-          const pet = state.pets.find(p => p.id === analysisData.petId);
+        if (resultAny.diseaseType && resultAny.diseaseType !== 'normal') {
+          const pet = state.pets.find((p: any) => p.id === analysisData.petId);
           if (pet) {
             // 构建病史记录
             const medicalRecord = {
@@ -590,8 +591,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
               date: new Date().toISOString().split('T')[0],
               type: 'checkup' as const,
               title: diseaseLabel || '皮肤问题检查',
-              description: `AI健康分析发现${diseaseLabel || '皮肤问题'}。${analysisData.result.recommendations?.slice(0, 2).join('；') || ''}`,
-              medication: analysisData.result.medication || []
+              description: `AI健康分析发现${diseaseLabel || '皮肤问题'}。${(analysisData.result.recommendations as string[])?.slice(0, 2).join('；') || ''}`,
+              medication: resultAny.medication || []
             };
             
             // 更新宠物档案
