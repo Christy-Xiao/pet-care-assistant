@@ -227,7 +227,7 @@ async function generateHealthReport(pet: any, medicalRecords: any[], healthRecor
     });
     
     const totalMeals = dietRecords.length;
-    const uniqueFoods = [...new Set(dietRecords.map(r => r.food_name))];
+    const uniqueFoods = Array.from(new Set(dietRecords.map(r => r.food_name)));
     
     dietAnalysis = `饮食记录：7天内共${uniqueDietDays}天有饮食记录，累计${totalMeals}次用餐。`;
     dietAnalysis += `\n📊 餐次分布：早${mealCounts.breakfast}次、午${mealCounts.lunch}次、晚${mealCounts.dinner}次、零食${mealCounts.snack}次。`;
@@ -409,7 +409,7 @@ async function generateHealthReport(pet: any, medicalRecords: any[], healthRecor
   nextCycleSuggestion += '  • 继续保持每日体重监测，特别是饭后和运动后\n';
   
   if (dietRecords.length > 0) {
-    const foodTypes = [...new Set(dietRecords.map(r => r.food_type))];
+    const foodTypes = Array.from(new Set(dietRecords.map(r => r.food_type)));
     nextCycleSuggestion += `  • 维持现有饮食结构，注意食物多样性（当前主要为${foodTypes.join('、')}类食物）\n`;
   } else {
     nextCycleSuggestion += '  • 建议固定喂食时间和量，便于观察食欲变化\n';
