@@ -11,10 +11,22 @@ import { ReactNode } from 'react';
 function AppContent({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const isLoginPage = pathname === '/login';
+  const isChatPage = pathname === '/chat';
   
   if (isLoginPage) {
     // 登录页面不需要 Navbar 和 Sidebar
     return <>{children}</>;
+  }
+
+  if (isChatPage) {
+    // AI 对话页面 — 全屏模式，无 Navbar/Sidebar
+    return (
+      <ProtectedRoute>
+        <div className="h-screen w-screen overflow-hidden bg-white">
+          {children}
+        </div>
+      </ProtectedRoute>
+    );
   }
   
   return (
