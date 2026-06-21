@@ -26,6 +26,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           const data = await response.json();
           if (data.user) {
             setUser(data.user);
+            // 同步到localStorage供其他模块使用（如聊天记录持久化）
+            localStorage.setItem('user', JSON.stringify(data.user));
           }
         }
       } catch (error) {
@@ -49,6 +51,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       
       if (response.ok) {
         setUser(data.user);
+        localStorage.setItem('user', JSON.stringify(data.user));
         return { success: true, message: '登录成功' };
       } else {
         return { success: false, message: data.message || '登录失败' };
@@ -70,6 +73,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       
       if (response.ok) {
         setUser(data.user);
+        localStorage.setItem('user', JSON.stringify(data.user));
         return { success: true, message: '注册成功' };
       } else {
         return { success: false, message: data.message || '注册失败' };
@@ -89,6 +93,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       localStorage.removeItem('schedules');
       localStorage.removeItem('healthAnalyses');
       localStorage.removeItem('notifications');
+      localStorage.removeItem('user');
     }
   };
 
