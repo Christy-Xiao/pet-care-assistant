@@ -23,17 +23,23 @@ export async function POST(request: NextRequest) {
     // dateOfBirth 直接使用字符串格式（YYYY-MM-DD）
     const dateOfBirth = body.dateOfBirth || body.date_of_birth;
     const medicalHistory = body.medicalHistory || body.medical_history;
-    // userId 转为数字（数据库是 int 类型），如果无法转换则用 null
-    let userId = null;
-    if (body.userId) {
-      const parsed = parseInt(body.userId);
-      userId = isNaN(parsed) ? null : parsed;
-    }
+    // userId 保持字符串（Supabase/PostgreSQL user_id 是 VARCHAR/TEXT）
+    const userId = body.userId || null;
     
     // 确保 name 有值
     const name = body.name || '未命名宠物';
     
-    console.log('📦 准备插入 - userId:', userId, 'name:', name);
+    // age 字段处理：前端传来的是 "4岁4个月" 格式字符串，数据库是 int 类型
+    // 尝试提取纯数字，失败则存 null（age 可通过 date_of_birth 计算）
+    let dbAge = null;
+    if (body.age && typeof body.age === 'number') {
+      dbAge = body.age;
+    } else if (body.age && typeof body.age === 'string') {
+      const numMatch = body.age.match(/^(\d+)/);
+      dbAge = numMatch ? parseInt(numMatch[1]) : null;
+    }
+    
+    console.log('📦 准备插入 - userId:', userId, 'name:', name, 'age:', dbAge);
     
     await insert(
       `INSERT INTO pets (id, user_id, name, species, breed, gender, date_of_birth, age, weight, avatar, allergies, medical_history, notes)
@@ -46,8 +52,8 @@ export async function POST(request: NextRequest) {
         body.breed || '', 
         body.gender || 'unknown', 
         dateOfBirth || null, 
-        body.age || null, 
-        body.weight || null, 
+        dbAge, 
+        body.weight !== undefined && body.weight !== '' ? Number(body.weight) : null,
         body.avatar || '', 
         Array.isArray(body.allergies) ? body.allergies.filter(Boolean).join(',') : (body.allergies || ''),
         Array.isArray(medicalHistory) ? JSON.stringify(medicalHistory) : (medicalHistory || ''),
@@ -91,10 +97,29 @@ export async function PUT(request: NextRequest) {
     Object.entries(updates).forEach(([key, value]) => {
       if (value !== undefined && key !== 'id') {
         const dbField = fieldMapping[key] || key;
-        fields.push(`${dbField} = ?`);
+        
+        // 跳过不需要更新到数据库的前端计算字段
+        if (key === 'source') return;
         
         // 转换值
-        if (Array.isArray(value)) {
+        if (key === 'age') {
+          // age 前端传来 "4岁4个月" 格式字符串，数据库是 int，提取数字
+          if (value === null || value === '') {
+            fields.push(`${dbField} = ?`);
+            values.push(null);
+          } else if (typeof value === 'number') {
+            fields.push(`${dbField} = ?`);
+            values.push(value);
+          } else if (typeof value === 'string') {
+            const numMatch = value.match(/^(\d+)/);
+            fields.push(`${dbField} = ?`);
+            values.push(numMatch ? parseInt(numMatch[1]) : null);
+          }
+        } else if (key === 'weight' && (value !== null && value !== '')) {
+          fields.push(`${dbField} = ?`);
+          values.push(Number(value) || null);
+        } else if (Array.isArray(value)) {
+          fields.push(`${dbField} = ?`);
           // medicalHistory 需要 JSON 序列化
           if (key === 'medicalHistory') {
             values.push(JSON.stringify(value));
@@ -104,9 +129,10 @@ export async function PUT(request: NextRequest) {
           }
         } else if (key === 'dateOfBirth' && value) {
           // dateOfBirth 直接使用字符串格式，避免时区问题
-          // 前端传来的是 YYYY-MM-DD 格式
+          fields.push(`${dbField} = ?`);
           values.push(value);
-        } else {
+        } else if (value !== null && value !== '') {
+          fields.push(`${dbField} = ?`);
           values.push(value);
         }
       }

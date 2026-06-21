@@ -15,10 +15,12 @@ import {
   Brain,
   CloudRain,
   Sun,
-  BarChart3
+  BarChart3,
+  Bell
 } from 'lucide-react';
 import WeatherWidget from '@/components/WeatherWidget';
 import MedicationReminderWidget from '@/components/MedicationReminderWidget';
+import WeatherTipWidget from '@/components/WeatherTipWidget';
 import { useState, useEffect } from 'react';
 
 // 长期记忆摘要组件
@@ -250,6 +252,9 @@ export default function HomePage() {
           <WeatherWidget />
         </div>
       </div>
+
+      {/* 天气智能推送横幅 + PWA 推送引导 */}
+      <WeatherTipWidget />
 
       {/* 主内容区域 */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6 animate-fadeIn">

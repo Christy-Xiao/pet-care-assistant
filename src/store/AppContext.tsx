@@ -283,8 +283,40 @@ export function AppProvider({ children }: { children: ReactNode }) {
       });
   };
 
-  // 检查天气并生成提醒（基于天气数据的主动服务）
-  const checkWeatherNotifications = () => {
+  // ===== 发送真正的 PWA 系统级推送通知 =====
+  const sendPWANotification = useCallback(async (title: string, body: string) => {
+    // 同时做两件事：1. 应用内通知 + 2. 真正的 PWA Push
+    try {
+      // 1. 应用内通知（fallback）
+      const notification: Notification = {
+        id: `notif-push-${Date.now()}`,
+        petId: '', petName: '',
+        title,
+        message: body,
+        type: 'info',
+        read: false,
+        createdAt: new Date().toISOString(),
+      };
+      dispatch({ type: 'ADD_NOTIFICATION', payload: notification });
+
+      // 2. 发送 PWA 推送（通过后端 web-push 发到所有订阅设备）
+      await fetch('/api/push/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title,
+          body,
+          icon: '/icons/icon-192x192.png',
+          url: '/',
+          tag: `weather-${new Date().toDateString()}`,
+          broadcast: true,  // 广播给所有订阅用户
+        }),
+      }).catch((err) => console.log('[AppContext] PWA推送发送失败(可能无VAPID配置或无订阅):', err));
+    } catch {}
+  }, [dispatch]);
+
+  // 检查天气并生成AI智能提醒 → 通过 PWA 推送
+  const checkWeatherNotifications = async () => {
     try {
       const weatherStr = localStorage.getItem('weatherData');
       if (!weatherStr) return;
@@ -292,40 +324,69 @@ export function AppProvider({ children }: { children: ReactNode }) {
       const weather = JSON.parse(weatherStr);
       const weatherCode = parseInt(weather?.current?.icon) || 0;
       const temp = parseInt(weather?.current?.temp) || 25;
+      const feelsLike = parseInt(weather?.current?.feelsLike) || temp;
+      const humidity = parseInt(weather?.current?.humidity) || 50;
+      const windSpeed = parseFloat(weather?.current?.windSpeed) || 5;
       
-      const isRainy = [51, 53, 55, 61, 63, 65, 80, 81, 82].includes(weatherCode);
       const lastWeatherCheck = localStorage.getItem('lastWeatherNotification');
       const today = new Date().toDateString();
       
       // 每天只提醒一次
       if (lastWeatherCheck === today) return;
-      
-      if (isRainy) {
-        const notification: Notification = {
-          id: `notif-weather-rain-${Date.now()}`,
-          petId: '',
-          petName: '',
-          title: '天气提醒 🌧️',
-          message: '今天有雨，出门记得给宠物带雨具哦！',
-          type: 'info',
-          read: false,
-          createdAt: new Date().toISOString(),
-        };
-        dispatch({ type: 'ADD_NOTIFICATION', payload: notification });
+
+      // 调用 AI 天气建议 API 获取萌系提示
+      let pushTitle = '';
+      let pushBody = '';
+
+      try {
+        const params = new URLSearchParams({
+          temp: String(temp), humidity: String(humidity),
+          weatherCode: String(weatherCode), windSpeed: String(windSpeed),
+          feelsLike: String(feelsLike),
+        });
+        const res = await fetch(`/api/weather/tips?${params}`);
+        const json = await res.json();
+
+        if (json.success && json.data) {
+          const tips = json.data;
+          pushTitle = tips.title;
+          pushBody = tips.walkAdvice.suitable
+            ? `${tips.summary} 🕐 建议${tips.walkAdvice.duration}·${tips.walkAdvice.bestTime}`
+            : `${tips.summary} ${tips.careTips[0]?.tip || ''}`;
+        }
+      } catch (aiErr) {
+        console.log('[AppContext] AI天气建议不可用，使用规则降级:', aiErr);
+      }
+
+      // 如果 AI 没返回结果，走规则引擎
+      if (!pushTitle) {
+        const isRainy = [51, 53, 55, 61, 63, 65, 80, 81, 82].includes(weatherCode);
+        const isStorm = [95, 96, 99].includes(weatherCode);
+
+        if (isStorm) {
+          pushTitle = '⛈️ 雷暴预警！今天宅家陪主子~';
+          pushBody = '打雷啦！毛孩子可能会害怕，在家玩点室内游戏安抚一下吧~ (｡•̀ᴗ-)✧';
+        } else if (isRainy) {
+          pushTitle = '🌧️ 今天有雨，记得带伞哦';
+          pushBody = '出门给毛孩子穿件雨衣吧！如果雨大的话就在家玩游戏也很好玩~ ☔';
+        } else if (temp > 35) {
+          pushTitle = '🔥 好热好热！主子也要避暑~';
+          pushBody = '柏油路面可能烫爪子！选择清晨或傍晚遛弯，时间控制在10-15分钟哦~ (๑´ڡ`๑)';
+        } else if (temp < 5) {
+          pushTitle = '❄️ 冷冷冷！抱紧你的小毛球';
+          pushBody = '出门记得给毛孩子穿衣服保暖，选中午暖和的时候出去哦~ 🫶';
+        } else {
+          // 普通天气也推一条轻量提示
+          pushTitle = '☀️ 今日养宠小贴士';
+          pushBody = `${temp}°C | 湿度${humidity}% | ${windSpeed}m/s风 — 点击查看详细护理建议~`;
+        }
+      }
+
+      // 统一通过 PWA 推送发出
+      if (pushTitle) {
+        await sendPWANotification(pushTitle, pushBody);
         localStorage.setItem('lastWeatherNotification', today);
-      } else if (temp > 35) {
-        const notification: Notification = {
-          id: `notif-weather-hot-${Date.now()}`,
-          petId: '',
-          petName: '',
-          title: '高温提醒 🔥',
-          message: '今天气温较高，遛狗时间建议控制在10-15分钟内，选择清晨或傍晚遛弯。',
-          type: 'info',
-          read: false,
-          createdAt: new Date().toISOString(),
-        };
-        dispatch({ type: 'ADD_NOTIFICATION', payload: notification });
-        localStorage.setItem('lastWeatherNotification', today);
+        console.log(`[AppContext] 天气PWA推送: ${pushTitle}`);
       }
     } catch {}
   };
@@ -334,35 +395,57 @@ export function AppProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!state.isLoading && state.pets.length > 0) {
       checkDueNotifications();
-      // 检查天气提醒
+      // 检查AI天气提醒（异步）
       checkWeatherNotifications();
     }
   }, [state.isLoading, state.pets.length]);
 
   // 自动生成宠物护理日程
   const generateSchedulesForPet = (pet: Pet) => {
+    // 保护：dateOfBirth 可能为空
+    if (!pet.dateOfBirth) {
+      console.log('⚠️ [AppContext] 宠物缺少 dateOfBirth，跳过日程生成');
+      return;
+    }
+    
+    const birthDate = new Date(pet.dateOfBirth);
+    // 验证日期有效性
+    if (isNaN(birthDate.getTime())) {
+      console.log('⚠️ [AppContext] 无效的 dateOfBirth:', pet.dateOfBirth, '，跳过日程生成');
+      return;
+    }
+
     const existingSchedules = state.careSchedules.filter((s) => s.petId === pet.id);
     const applicableTemplates = getApplicableSchedules(pet.species, 
-      Math.floor((new Date().getTime() - new Date(pet.dateOfBirth).getTime()) / (30 * 24 * 60 * 60 * 1000))
+      Math.floor((new Date().getTime() - birthDate.getTime()) / (30 * 24 * 60 * 60 * 1000))
     );
 
     applicableTemplates.forEach((template) => {
       // 检查是否已有该模板的日程
       const hasSchedule = existingSchedules.some((s) => s.id.startsWith(template.id));
       if (!hasSchedule) {
-        const schedule: CareSchedule = {
-          id: `${template.id}-${pet.id}-${Date.now()}`,
-          petId: pet.id,
-          title: template.name,
-          description: template.description,
-          eventType: template.event_type as CareSchedule['eventType'],
-          dueDate: calculateNextDueDate(template, pet.dateOfBirth).toISOString(),
-          status: 'pending',
-          priority: template.priority,
-          recurrence: template.recurrence,
-          source: template.source,
-        };
-        dispatch({ type: 'ADD_SCHEDULE', payload: schedule });
+        try {
+          const nextDue = calculateNextDueDate(template, pet.dateOfBirth);
+          if (!nextDue || isNaN(nextDue.getTime())) {
+            console.log('⚠️ [AppContext] calculateNextDueDate 返回无效日期，跳过模板:', template.name);
+            return;
+          }
+          const schedule: CareSchedule = {
+            id: `${template.id}-${pet.id}-${Date.now()}`,
+            petId: pet.id,
+            title: template.name,
+            description: template.description,
+            eventType: template.event_type as CareSchedule['eventType'],
+            dueDate: nextDue.toISOString(),
+            status: 'pending',
+            priority: template.priority,
+            recurrence: template.recurrence,
+            source: template.source,
+          };
+          dispatch({ type: 'ADD_SCHEDULE', payload: schedule });
+        } catch (err) {
+          console.error('⚠️ [AppContext] 生成日程失败:', err, '模板:', template.name);
+        }
       }
     });
   };

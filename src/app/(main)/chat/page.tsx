@@ -2,7 +2,7 @@
 
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Send, Bot, User, Loader2, Sparkles, Trash2, Info, Database, Bell, Plus, MessageSquare, ChevronDown, X, Check, Image, Camera, Scale, PawPrint, Calendar, Heart, Clock, MapPin, HeartPulse, Activity } from 'lucide-react';
+import { Send, Bot, User, Loader2, Sparkles, Trash2, Info, Database, Bell, Plus, MessageSquare, ChevronDown, X, Check, Image, Camera, Scale, PawPrint, Calendar, Heart, Clock, MapPin, HeartPulse, Activity, Mic, MicOff } from 'lucide-react';
 import { generateCareMessage, getTodayFestival, getTomorrowFestival } from '@/lib/care-engine';
 import { useApp } from '@/store/AppContext';
 import ChatLayout from '@/components/ChatLayout';
@@ -2465,6 +2465,10 @@ export default function ChatPage() {
   const [uploadedImage, setUploadedImage] = useState<string | null>(null);
   const [showImageUpload, setShowImageUpload] = useState(false);
   const [healthAnalysisTarget, setHealthAnalysisTarget] = useState<string | null>(null);
+
+  // 语音录制状态
+  const [isRecording, setIsRecording] = useState(false);
+  const [isProcessingVoice, setIsProcessingVoice] = useState(false);
   
   // 宠物确认状态
   const [petConfirmation, setPetConfirmation] = useState<{
@@ -2775,6 +2779,215 @@ export default function ChatPage() {
     
     // 触发发送，使用消息内容作为参数
     await handleSendWithAnalysis(uploadedImage, analysisMessage);
+  };
+
+  // ========== 语音录制功能（AudioContext PCM → WAV，全平台兼容） ==========
+  
+  /** 将 Float32Array PCM 数据编码为 WAV Blob */
+  const encodeWAV = (
+    samples: Float32Array[], 
+    sampleRate: number,
+    numChannels: number = 1
+  ): Blob => {
+    // 合并所有采样数据
+    const totalLength = samples.reduce((acc, arr) => acc + arr.length, 0);
+    const result = new Int16Array(totalLength);
+    let offset = 0;
+    for (const chunk of samples) {
+      for (let i = 0; i < chunk.length; i++) {
+        const s = Math.max(-1, Math.min(1, chunk[i]));
+        result[offset++] = s < 0 ? s * 0x8000 : s * 0x7FFF;
+      }
+    }
+
+    const dataSize = result.length * 2; // 16-bit = 2 bytes per sample
+    const buffer = new ArrayBuffer(44 + dataSize);
+    const view = new DataView(buffer);
+
+    // RIFF header
+    writeString(view, 0, 'RIFF');
+    view.setUint32(4, 36 + dataSize, true);
+    writeString(view, 8, 'WAVE');
+    
+    // fmt chunk
+    writeString(view, 12, 'fmt ');
+    view.setUint32(16, 16, true);             // chunk size
+    view.setUint16(20, 1, true);               // PCM format
+    view.setUint16(22, numChannels, true);     // channels
+    view.setUint32(24, sampleRate, true);       // sample rate
+    view.setUint32(28, sampleRate * numChannels * 2, true); // byte rate
+    view.setUint16(32, numChannels * 2, true);  // block align
+    view.setUint16(34, 16, true);              // bits per sample
+    
+    // data chunk
+    writeString(view, 36, 'data');
+    view.setUint32(40, dataSize, true);
+    
+    // 写入 PCM 数据
+    let byteOffset = 44;
+    for (let i = 0; i < result.length; i++) {
+      view.setInt16(byteOffset, result[i], true);
+      byteOffset += 2;
+    }
+
+    return new Blob([buffer], { type: 'audio/wav' });
+  };
+
+  const writeString = (view: DataView, offset: number, str: string) => {
+    for (let i = 0; i < str.length; i++) view.setUint8(offset + i, str.charCodeAt(i));
+  };
+
+  // 录音相关 ref
+  const audioContextRef = useRef<AudioContext | null>(null);
+  const streamRef = useRef<MediaStream | null>(null);
+  const processorRef = useRef<ScriptProcessorNode | null>(null);
+  const pcmChunksRef = useRef<Float32Array[]>([]);
+  const isRecordingRef = useRef(false); // 同步ref，用于onaudioprocess回调中判断
+
+  // 开始录音 (AudioContext + ScriptProcessor → 直接输出WAV)
+  const startRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true }
+      });
+      streamRef.current = stream;
+
+      const audioContext = new AudioContext({ sampleRate: 16000 }); // 智谱推荐16kHz
+      audioContextRef.current = audioContext;
+
+      const source = audioContext.createMediaStreamSource(stream);
+      const processor = audioContext.createScriptProcessor(4096, 1, 1);
+      processorRef.current = processor;
+      pcmChunksRef.current = [];
+      isRecordingRef.current = true; // ← 同步设为true，闭包外也能读到
+
+      processor.onaudioprocess = (e) => {
+        if (!isRecordingRef.current) return; // 用ref判断（同步值）
+        pcmChunksRef.current.push(new Float32Array(e.inputBuffer.getChannelData(0)));
+      };
+
+      source.connect(processor);
+      processor.connect(audioContext.destination);
+
+      setIsRecording(true);
+      
+    } catch (error: any) {
+      console.error('[Voice] 录音启动失败:', error);
+      if (error.name === 'NotAllowedError' || error.name === 'PermissionDeniedError') {
+        alert('请允许访问麦克风权限后再试');
+      } else if (error.name === 'NotFoundError') {
+        alert('未检测到麦克风设备');
+      } else {
+        alert(`无法启动录音: ${error.message}`);
+      }
+    }
+  };
+
+  // 停止录音并处理
+  const stopRecording = () => {
+    if (!audioContextRef.current || !isRecordingRef.current) return;
+
+    isRecordingRef.current = false; // 同步停止收集
+    setIsRecording(false);
+    setIsProcessingVoice(true);
+
+    try {
+      // 停止收集PCM
+      const processor = processorRef.current;
+      const audioContext = audioContextRef.current;
+      const stream = streamRef.current;
+      const pcmChunks = [...pcmChunksRef.current]; // 快照
+
+      // 断开连接
+      if (processor) { processor.disconnect(); processorRef.current = null; }
+      if (stream) stream.getTracks().forEach(t => t.stop());
+      
+      // 关闭 AudioContext
+      setTimeout(() => audioContext.close(), 100);
+
+      // 编码为 WAV
+      const wavBlob = encodeWAV(pcmChunks, 16000, 1);
+      console.log(`[Voice] WAV生成完成: ${(wavBlob.size / 1024).toFixed(1)}KB`);
+
+      // 发送到后端转写
+      const formData = new FormData();
+      formData.append('audio', wavBlob, 'recording.wav');
+
+      fetch('/api/voice', { method: 'POST', body: formData })
+        .then(res => res.json())
+        .then((data: any) => {
+          if (data.error) {
+            console.error('[Voice] 转写失败:', data.error);
+            alert(data.error);
+            return;
+          }
+
+          if (data.text && data.text.trim()) {
+            const recognizedText = data.text.trim();
+            
+            // 直接发送对话（复用现有 chat API）
+            const userMessage: Message = {
+              id: Date.now().toString(),
+              role: 'user',
+              content: `[🎤 语音] ${recognizedText}`,
+              timestamp: new Date(),
+            };
+            const newMessages = [...messages, userMessage];
+            saveCurrentConversation(newMessages);
+            setInput('');
+            setIsLoading(true);
+
+            fetch('/api/chat', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                messages: [{ role: 'user', content: recognizedText }],
+                userData: getUserData(),
+                userId,
+                sessionId,
+              }),
+            })
+              .then(res => res.json())
+              .then((chatData: any) => {
+                if (chatData.sessionId) {
+                  setSessionId(chatData.sessionId);
+                  localStorage.setItem('chatSessionId', chatData.sessionId);
+                }
+                const assistantMessage: Message = {
+                  id: (Date.now() + 1).toString(),
+                  role: 'assistant',
+                  content: chatData.reply,
+                  timestamp: new Date(),
+                  contextUsed: chatData.contextUsed,
+                };
+                saveCurrentConversation([...newMessages, assistantMessage]);
+                if (chatData.petConfirmation) setPetConfirmation(chatData.petConfirmation);
+                if (chatData.scheduleConfirmation) setScheduleConfirmation(chatData.scheduleConfirmation);
+                if (chatData.petProfileView) setPetProfileView(chatData.petProfileView);
+              })
+              .catch((error: any) => {
+                const errorMessage: Message = {
+                  id: (Date.now() + 1).toString(),
+                  role: 'assistant',
+                  content: `😿 抱歉，${error.message || '语音处理失败，请重试。'}`,
+                  timestamp: new Date(),
+                };
+                saveCurrentConversation([...newMessages, errorMessage]);
+              })
+              .finally(() => setIsLoading(false));
+          }
+        })
+        .catch((err: any) => {
+          console.error('[Voice] 发送失败:', err);
+          alert('语音处理失败，请重试');
+        })
+        .finally(() => setIsProcessingVoice(false));
+
+    } catch (err) {
+      console.error('[Voice] 处理录音出错:', err);
+      alert('语音处理失败，请重试');
+      setIsProcessingVoice(false);
+    }
   };
 
   // 发送带分析的消息
@@ -4071,6 +4284,40 @@ ${generateCareMessage(undefined)}
         {/* Input */}
         <div className="p-4 bg-white border-t">
           <div className="flex items-center gap-3">
+            {/* 麦克风按钮 - 按住录音 */}
+            {isRecording ? (
+              <motion.button
+                whileTap={{ scale: 0.9 }}
+                onMouseUp={stopRecording}
+                onTouchEnd={stopRecording}
+                onMouseLeave={stopRecording}
+                className="relative p-3 rounded-full bg-red-500 text-white shadow-lg shadow-red-200"
+                title="松开结束录音"
+              >
+                {/* 录音脉冲动画 */}
+                <span className="absolute inset-0 rounded-full bg-red-400 animate-ping opacity-75" />
+                <MicOff className="w-5 h-5 relative z-10" />
+              </motion.button>
+            ) : (
+              <button
+                onMouseDown={startRecording}
+                onTouchStart={(e) => { e.preventDefault(); startRecording(); }}
+                disabled={isLoading || isProcessingVoice}
+                className={`p-3 rounded-full transition-all ${
+                  isProcessingVoice 
+                    ? 'bg-blue-100 text-blue-500' 
+                    : 'bg-gradient-to-br from-green-400 to-emerald-500 text-white hover:shadow-lg hover:shadow-green-200 active:scale-95'
+                } disabled:opacity-50 disabled:cursor-not-allowed`}
+                title="按住说话"
+              >
+                {isProcessingVoice ? (
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                ) : (
+                  <Mic className="w-5 h-5" />
+                )}
+              </button>
+            )}
+
             <button
               onClick={() => setShowImageUpload(!showImageUpload)}
               className={`p-3 rounded-full transition-colors ${
@@ -4087,9 +4334,11 @@ ${generateCareMessage(undefined)}
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && handleSend()}
-              placeholder="输入你的问题或下达指令..."
-              className="flex-1 px-4 py-3 rounded-full bg-gray-100 border border-transparent focus:border-purple-300 focus:bg-white focus:outline-none transition-all"
-              disabled={isLoading}
+              placeholder={isRecording ? "🎤 正在录音，松开发送..." : isProcessingVoice ? "正在识别语音..." : "输入你的问题或下达指令..."}
+              className={`flex-1 px-4 py-3 rounded-full bg-gray-100 border border-transparent focus:border-purple-300 focus:bg-white focus:outline-none transition-all ${
+                isRecording ? 'border-red-300 bg-red-50 animate-pulse' : ''
+              }`}
+              disabled={isLoading || isRecording}
             />
             <motion.button
               whileTap={{ scale: 0.95 }}

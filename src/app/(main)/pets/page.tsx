@@ -49,14 +49,14 @@ export default function PetsPage() {
     setFormData({
       name: pet.name,
       species: pet.species,
-      breed: pet.breed,
-      dateOfBirth: pet.dateOfBirth.split('T')[0],
-      age: pet.age,
-      weight: pet.weight,
-      gender: pet.gender,
-      allergies: [...pet.allergies],
-      medicalHistory: [...pet.medicalHistory],
-      notes: pet.notes,
+      breed: pet.breed || '',
+      dateOfBirth: pet.dateOfBirth ? (typeof pet.dateOfBirth === 'string' ? pet.dateOfBirth.split('T')[0] : '') : '',
+      age: pet.age || '',
+      weight: pet.weight ?? 0,
+      gender: pet.gender || 'male',
+      allergies: Array.isArray(pet.allergies) ? [...pet.allergies] : (pet.allergies ? String(pet.allergies).split(',').filter(Boolean) : []),
+      medicalHistory: Array.isArray(pet.medicalHistory) ? [...pet.medicalHistory] : [],
+      notes: pet.notes || '',
     });
     setEditingPet(pet);
     setShowAddModal(true);
@@ -211,7 +211,7 @@ export default function PetsPage() {
                   </div>
                   <div className="flex items-center gap-2 text-sm text-gray-600">
                     <Weight className="w-4 h-4 text-gray-400" />
-                    <span>{pet.weight} kg</span>
+                    <span>{pet.weight && !isNaN(pet.weight) ? `${pet.weight} kg` : '-'}</span>
                   </div>
                   <span className={`px-2 py-0.5 rounded-full text-xs ${
                     pet.gender === 'male' ? 'bg-blue-50 text-blue-600' : 'bg-pink-50 text-pink-600'
@@ -401,9 +401,11 @@ export default function PetsPage() {
                       type="number"
                       step="0.1"
                       min="0"
-                      required
                       value={formData.weight}
-                      onChange={(e) => setFormData({ ...formData, weight: parseFloat(e.target.value) })}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setFormData({ ...formData, weight: val === '' ? '' : parseFloat(val) });
+                      }}
                       className="w-full px-4 py-2 rounded-xl border border-gray-200 focus:border-primary-500 focus:ring-2 focus:ring-primary-200 outline-none"
                       placeholder="例如：5.5"
                     />

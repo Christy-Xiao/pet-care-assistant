@@ -17,7 +17,7 @@ export async function GET(request: NextRequest) {
     }
 
     if (active === 'true') {
-      sql += ' AND status = "active"';
+      sql += ' AND status = \'active\'';
     }
 
     sql += ' ORDER BY next_dose_time ASC';

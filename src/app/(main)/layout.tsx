@@ -2,6 +2,7 @@ import Navbar from '@/components/Navbar';
 import Sidebar from '@/components/Sidebar';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import PWAInstallButton from '@/components/PWAInstallButton';
+import VoiceAssistantButton from '@/components/VoiceAssistantButton';
 
 export default function MainLayout({
   children,
@@ -19,6 +20,7 @@ export default function MainLayout({
           </main>
         </div>
         <PWAInstallButton />
+        <VoiceAssistantButton />
       </div>
     </ProtectedRoute>
   );
