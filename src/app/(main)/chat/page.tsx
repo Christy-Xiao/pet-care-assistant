@@ -3816,88 +3816,12 @@ ${generateCareMessage(undefined)}
 
   return (
     <ChatLayout>
-    <div className="h-full flex bg-gradient-to-b from-purple-50 to-white">
-      {/* 移动端对话列表遮罩 */}
-      {showConversationList && (
-        <div 
-          className="fixed inset-0 bg-black/50 z-40 lg:hidden"
-          onClick={() => setShowConversationList(false)}
-        />
-      )}
-      
-      {/* 移动端对话列表 */}
-      <div className={`fixed lg:static inset-y-0 left-0 z-50 w-72 transform transition-transform lg:hidden ${
-        showConversationList ? 'translate-x-0' : '-translate-x-full'
-      }`}>
-        <ConversationList
-          conversations={conversations}
-          currentId={currentConversationId || ''}
-          onSelect={handleSelectConversation}
-          onNewChat={handleNewChat}
-          onDelete={handleDeleteConversation}
-          onClose={() => setShowConversationList(false)}
-        />
-      </div>
-
-      {/* 桌面端对话列表 */}
-      <div className="hidden lg:block w-72 border-r bg-white">
-        <ConversationList
-          conversations={conversations}
-          currentId={currentConversationId || ''}
-          onSelect={handleSelectConversation}
-          onNewChat={handleNewChat}
-          onDelete={handleDeleteConversation}
-          onClose={() => setShowConversationList(false)}
-        />
-      </div>
-
-      {/* 主聊天区域 */}
-      <div className="flex-1 flex flex-col h-full">
-        {/* Header */}
-        <div className="bg-white border-b px-4 py-3 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => setShowConversationList(true)}
-              className="p-2 text-gray-400 hover:text-purple-500 hover:bg-purple-50 rounded-full transition-colors lg:hidden"
-            >
-              <MessageSquare className="w-5 h-5" />
-            </button>
-            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center">
-              <Bot className="w-6 h-6 text-white" />
-            </div>
-            <div>
-              <h1 className="font-bold text-gray-800">毛绒管家 AI</h1>
-              <div className="flex items-center gap-1.5">
-                <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
-                <span className="text-xs text-gray-500">
-                  智谱AI · {hasPets ? '已读取档案' : '等待添加宠物'}
-                </span>
-              </div>
-            </div>
-          </div>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={handleNewChat}
-              className="p-2 text-gray-400 hover:text-purple-500 hover:bg-purple-50 rounded-full transition-colors"
-              title="新对话"
-            >
-              <Plus className="w-5 h-5" />
-            </button>
-            <button
-              onClick={() => setShowPushSettings(true)}
-              className="p-2 text-gray-400 hover:text-purple-500 hover:bg-purple-50 rounded-full transition-colors"
-              title="主动提醒设置"
-            >
-              <Bell className="w-5 h-5" />
-            </button>
-          </div>
-        </div>
-
+    <div className="h-full flex flex-col">
         {/* Data indicator */}
         {hasPets && (
-          <div className="bg-green-50 border-b border-green-100 px-4 py-2 flex items-center gap-2 text-sm text-green-700">
-            <Database className="w-4 h-4" />
-            <span>已同步宠物档案、日程和健康记录 · 长期记忆已启用</span>
+          <div className="shrink-0 bg-emerald-500/10 border-b border-emerald-500/20 px-4 py-2 flex items-center gap-2 text-xs text-emerald-400">
+            <Database className="w-3.5 h-3.5" />
+            <span>已同步宠物档案 · 长期记忆已启用</span>
           </div>
         )}
 
@@ -3930,15 +3854,15 @@ ${generateCareMessage(undefined)}
                   <div className="flex flex-col gap-1">
                     <div className={`rounded-2xl px-4 py-3 ${
                       message.role === 'user'
-                        ? 'bg-gradient-to-br from-blue-500 to-cyan-500 text-white rounded-tr-sm'
-                        : 'bg-white shadow-md text-gray-800 rounded-tl-sm'
+                        ? 'bg-gradient-to-br from-primary-500 to-accent-500 text-white rounded-tr-sm'
+                        : 'bg-white/10 backdrop-blur-sm border border-white/10 text-white/90 rounded-tl-sm'
                     }`}>
                       <p className="whitespace-pre-wrap leading-relaxed">{message.content}</p>
                     </div>
 
                     {/* Context indicator */}
                     {message.role === 'assistant' && message.contextUsed && (
-                      <div className="flex items-center gap-1.5 text-xs text-purple-600 bg-purple-50 px-2 py-1 rounded-full w-fit">
+                      <div className="flex items-center gap-1.5 text-xs text-primary-300 bg-primary-500/10 px-2 py-1 rounded-full w-fit">
                         <Info className="w-3 h-3" />
                         <span>已读取宠物档案</span>
                       </div>
@@ -3965,8 +3889,8 @@ ${generateCareMessage(undefined)}
                 <div className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center">
                   <Bot className="w-4 h-4 text-white" />
                 </div>
-                <div className="bg-white shadow-md rounded-2xl rounded-tl-sm px-4 py-3">
-                  <div className="flex items-center gap-2 text-gray-500">
+                <div className="bg-white/10 backdrop-blur-sm border border-white/10 rounded-2xl rounded-tl-sm px-4 py-3">
+                  <div className="flex items-center gap-2 text-white/60">
                     <Loader2 className="w-4 h-4 animate-spin" />
                     <span>正在思考...</span>
                     <Sparkles className="w-4 h-4 text-purple-500 animate-pulse" />
@@ -4140,13 +4064,13 @@ ${generateCareMessage(undefined)}
         {/* Quick Questions */}
         {showQuickActions && (
           <div className="px-4 pb-2">
-            <p className="text-xs text-gray-500 mb-2">快捷问题：</p>
+            <p className="text-xs text-white/40 mb-2">快捷问题：</p>
             <div className="flex flex-wrap gap-2">
               {quickQuestions.map((q, i) => (
                 <button
                   key={i}
                   onClick={() => handleQuickQuestion(q.text)}
-                  className="text-sm px-3 py-1.5 bg-white border border-purple-200 rounded-full text-purple-700 hover:bg-purple-50 hover:border-purple-300 transition-colors"
+                  className="text-sm px-3 py-1.5 bg-white/8 border border-white/15 rounded-full text-white/70 hover:bg-white/15 hover:border-white/25 transition-colors"
                 >
                   {q.icon} {q.text}
                 </button>
@@ -4154,53 +4078,53 @@ ${generateCareMessage(undefined)}
             </div>
             
             {/* 快捷操作按钮 */}
-            <p className="text-xs text-gray-500 mb-2 mt-4">快捷操作：</p>
+            <p className="text-xs text-white/40 mb-2 mt-4">快捷操作：</p>
             <div className="flex flex-wrap gap-2">
               <button
                 onClick={() => handleQuickAction('addPet')}
-                className="flex items-center gap-2 text-sm px-3 py-2 bg-blue-50 border border-blue-200 rounded-xl text-blue-700 hover:bg-blue-100 transition-colors"
+                className="flex items-center gap-2 text-sm px-3 py-2 bg-primary-500/15 border border-primary-500/25 rounded-xl text-primary-300 hover:bg-primary-500/25 transition-colors"
               >
                 <PawPrint className="w-4 h-4" />
                 添加宠物
               </button>
               <button
                 onClick={() => handleQuickAction('recordWeight')}
-                className="flex items-center gap-2 text-sm px-3 py-2 bg-green-50 border border-green-200 rounded-xl text-green-700 hover:bg-green-100 transition-colors"
+                className="flex items-center gap-2 text-sm px-3 py-2 bg-emerald-500/15 border border-emerald-500/25 rounded-xl text-emerald-300 hover:bg-emerald-500/25 transition-colors"
               >
                 <Scale className="w-4 h-4" />
                 记录体重
               </button>
               <button
                 onClick={() => handleQuickAction('healthAnalysis')}
-                className="flex items-center gap-2 text-sm px-3 py-2 bg-red-50 border border-red-200 rounded-xl text-red-700 hover:bg-red-100 transition-colors"
+                className="flex items-center gap-2 text-sm px-3 py-2 bg-red-500/15 border border-red-500/25 rounded-xl text-red-300 hover:bg-red-500/25 transition-colors"
               >
                 <Camera className="w-4 h-4" />
                 健康分析
               </button>
               <button
                 onClick={() => handleQuickAction('createSchedule')}
-                className="flex items-center gap-2 text-sm px-3 py-2 bg-amber-50 border border-amber-200 rounded-xl text-amber-700 hover:bg-amber-100 transition-colors"
+                className="flex items-center gap-2 text-sm px-3 py-2 bg-amber-500/15 border border-amber-500/25 rounded-xl text-amber-300 hover:bg-amber-500/25 transition-colors"
               >
                 <Calendar className="w-4 h-4" />
                 安排日程
               </button>
               <button
                 onClick={() => handleQuickAction('medicationReminder')}
-                className="flex items-center gap-2 text-sm px-3 py-2 bg-purple-50 border border-purple-200 rounded-xl text-purple-700 hover:bg-purple-100 transition-colors"
+                className="flex items-center gap-2 text-sm px-3 py-2 bg-purple-500/15 border border-purple-500/25 rounded-xl text-purple-300 hover:bg-purple-500/25 transition-colors"
               >
                 <Bell className="w-4 h-4" />
                 用药提醒
               </button>
               <button
                 onClick={() => handleQuickAction('healthTest')}
-                className="flex items-center gap-2 text-sm px-3 py-2 bg-emerald-50 border border-emerald-200 rounded-xl text-emerald-700 hover:bg-emerald-100 transition-colors"
+                className="flex items-center gap-2 text-sm px-3 py-2 bg-teal-500/15 border border-teal-500/25 rounded-xl text-teal-300 hover:bg-teal-500/25 transition-colors"
               >
                 <HeartPulse className="w-4 h-4" />
                 健康自测
               </button>
               <button
                 onClick={() => handleQuickAction('viewSchedule')}
-                className="flex items-center gap-2 text-sm px-3 py-2 bg-amber-50 border border-amber-200 rounded-xl text-amber-700 hover:bg-amber-100 transition-colors"
+                className="flex items-center gap-2 text-sm px-3 py-2 bg-orange-500/15 border border-orange-500/25 rounded-xl text-orange-300 hover:bg-orange-500/25 transition-colors"
               >
                 <Calendar className="w-4 h-4" />
                 查看日程
@@ -4212,15 +4136,15 @@ ${generateCareMessage(undefined)}
         {/* 图片上传区域 */}
         {showImageUpload && (
           <div className="px-4 pb-2">
-            <div className="bg-purple-50 border border-purple-200 rounded-2xl p-4">
+            <div className="bg-white/5 border border-white/10 rounded-2xl p-4">
               <div className="flex items-center justify-between mb-3">
-                <p className="text-sm text-purple-700 font-medium flex items-center gap-2">
+                <p className="text-sm text-primary-300 font-medium flex items-center gap-2">
                   <Camera className="w-4 h-4" />
                   {healthAnalysisTarget ? `为 ${healthAnalysisTarget} 上传照片` : '上传照片进行分析'}
                 </p>
                 <button 
                   onClick={() => { setShowImageUpload(false); setUploadedImage(null); }}
-                  className="text-purple-400 hover:text-purple-600"
+                  className="text-white/40 hover:text-white/70"
                 >
                   <X className="w-4 h-4" />
                 </button>
@@ -4235,19 +4159,19 @@ ${generateCareMessage(undefined)}
                   />
                   <button
                     onClick={() => setUploadedImage(null)}
-                    className="absolute top-2 right-2 p-1 bg-white rounded-full shadow"
+                    className="absolute top-2 right-2 p-1 bg-white/20 rounded-full shadow"
                   >
-                    <X className="w-4 h-4 text-gray-600" />
+                    <X className="w-4 h-4 text-white/80" />
                   </button>
                 </div>
               ) : (
                 <div 
                   onClick={() => fileInputRef.current?.click()}
-                  className="border-2 border-dashed border-purple-300 rounded-xl p-8 text-center cursor-pointer hover:border-purple-400 hover:bg-purple-100 transition-colors"
+                  className="border-2 border-dashed border-white/15 rounded-xl p-8 text-center cursor-pointer hover:border-white/25 hover:bg-white/5 transition-colors"
                 >
-                  <Image className="w-8 h-8 text-purple-400 mx-auto mb-2" />
-                  <p className="text-sm text-purple-600">点击上传图片</p>
-                  <p className="text-xs text-purple-400 mt-1">支持 JPG、PNG 格式</p>
+                  <Image className="w-8 h-8 text-primary-400/50 mx-auto mb-2" />
+                  <p className="text-sm text-white/50">点击上传图片</p>
+                  <p className="text-xs text-white/30 mt-1">支持 JPG、PNG 格式</p>
                 </div>
               )}
               
@@ -4266,12 +4190,12 @@ ${generateCareMessage(undefined)}
                     value={input}
                     onChange={(e) => setInput(e.target.value)}
                     placeholder="描述一下照片内容（可选）..."
-                    className="flex-1 px-3 py-2 text-sm rounded-lg border border-purple-200 focus:border-purple-400 focus:outline-none"
+                    className="flex-1 px-3 py-2 text-sm rounded-lg border border-white/15 bg-white/8 text-white placeholder-white/30 focus:border-primary-400/50 focus:bg-white/10 focus:outline-none"
                   />
                   <button
                     onClick={handleSendWithImage}
                     disabled={isLoading}
-                    className="px-4 py-2 bg-purple-500 text-white rounded-lg text-sm font-medium hover:bg-purple-600 disabled:opacity-50 transition-colors"
+                    className="px-4 py-2 bg-primary-500 text-white rounded-lg text-sm font-medium hover:bg-primary-600 disabled:opacity-50 transition-colors"
                   >
                     发送
                   </button>
@@ -4282,83 +4206,82 @@ ${generateCareMessage(undefined)}
         )}
 
         {/* Input */}
-        <div className="p-4 bg-white border-t">
-          <div className="flex items-center gap-3">
-            {/* 麦克风按钮 - 按住录音 */}
+        <div className="shrink-0 p-4 bg-stone-900/80 backdrop-blur-sm border-t border-white/8">
+          <div className="flex items-center gap-2.5">
+            {/* 麦克风按钮 */}
             {isRecording ? (
               <motion.button
                 whileTap={{ scale: 0.9 }}
                 onMouseUp={stopRecording}
                 onTouchEnd={stopRecording}
                 onMouseLeave={stopRecording}
-                className="relative p-3 rounded-full bg-red-500 text-white shadow-lg shadow-red-200"
+                className="relative p-2.5 rounded-full bg-red-500/90 text-white shadow-lg shadow-red-500/20"
                 title="松开结束录音"
               >
-                {/* 录音脉冲动画 */}
-                <span className="absolute inset-0 rounded-full bg-red-400 animate-ping opacity-75" />
-                <MicOff className="w-5 h-5 relative z-10" />
+                <span className="absolute inset-0 rounded-full bg-red-400 animate-ping opacity-40" />
+                <MicOff className="w-[18px] h-[18px] relative z-10" />
               </motion.button>
             ) : (
               <button
                 onMouseDown={startRecording}
                 onTouchStart={(e) => { e.preventDefault(); startRecording(); }}
                 disabled={isLoading || isProcessingVoice}
-                className={`p-3 rounded-full transition-all ${
+                className={`p-2.5 rounded-full transition-all ${
                   isProcessingVoice 
-                    ? 'bg-blue-100 text-blue-500' 
-                    : 'bg-gradient-to-br from-green-400 to-emerald-500 text-white hover:shadow-lg hover:shadow-green-200 active:scale-95'
+                    ? 'bg-primary-400/20 text-primary-300' 
+                    : 'bg-white/10 text-white/60 hover:bg-white/15 hover:text-white/80 active:scale-95'
                 } disabled:opacity-50 disabled:cursor-not-allowed`}
                 title="按住说话"
               >
                 {isProcessingVoice ? (
-                  <Loader2 className="w-5 h-5 animate-spin" />
+                  <Loader2 className="w-[18px] h-[18px] animate-spin" />
                 ) : (
-                  <Mic className="w-5 h-5" />
+                  <Mic className="w-[18px] h-[18px]" />
                 )}
               </button>
             )}
 
+            {/* 图片按钮 */}
             <button
               onClick={() => setShowImageUpload(!showImageUpload)}
-              className={`p-3 rounded-full transition-colors ${
+              className={`p-2.5 rounded-full transition-colors ${
                 showImageUpload 
-                  ? 'bg-purple-100 text-purple-600' 
-                  : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+                  ? 'bg-primary-400/20 text-primary-300' 
+                  : 'bg-white/8 text-white/40 hover:bg-white/15 hover:text-white/60'
               }`}
               title="上传图片"
             >
-              <Image className="w-5 h-5" />
+              <Image className="w-[18px] h-[18px]" />
             </button>
+            
+            {/* 文本输入 */}
             <input
               type="text"
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && handleSend()}
               placeholder={isRecording ? "🎤 正在录音，松开发送..." : isProcessingVoice ? "正在识别语音..." : "输入你的问题或下达指令..."}
-              className={`flex-1 px-4 py-3 rounded-full bg-gray-100 border border-transparent focus:border-purple-300 focus:bg-white focus:outline-none transition-all ${
-                isRecording ? 'border-red-300 bg-red-50 animate-pulse' : ''
+              className={`flex-1 px-4 py-2.5 rounded-full bg-white/8 border border-transparent text-white text-sm placeholder-white/30 focus:border-primary-400/30 focus:bg-white/12 focus:outline-none transition-all ${
+                isRecording ? 'border-red-400/30 bg-red-500/10 animate-pulse' : ''
               }`}
               disabled={isLoading || isRecording}
             />
+
+            {/* 发送按钮 */}
             <motion.button
               whileTap={{ scale: 0.95 }}
               onClick={handleSend}
               disabled={!input.trim() || isLoading}
-              className="w-12 h-12 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 text-white flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-purple-200"
+              className="w-10 h-10 rounded-full bg-gradient-to-br from-primary-400 to-accent-500 text-white flex items-center justify-center disabled:opacity-40 disabled:cursor-not-allowed shadow-md shadow-primary-500/20"
             >
               {isLoading ? (
-                <Loader2 className="w-5 h-5 animate-spin" />
+                <Loader2 className="w-4 h-4 animate-spin" />
               ) : (
-                <Send className="w-5 h-5" />
+                <Send className="w-4 h-4" />
               )}
             </motion.button>
           </div>
-          <p className="text-xs text-gray-400 text-center mt-2">
-            可以直接通过对话完成：添加宠物、记录体重、安排日程、用药提醒等 💡
-          </p>
         </div>
-      </div>
-
       {/* Push Settings Modal */}
       <PushSettingsModal 
         isOpen={showPushSettings} 
@@ -4390,16 +4313,13 @@ ${generateCareMessage(undefined)}
         outdoorActivityRecommend={outdoorActivityRecommend}
         onSelectOption={(option) => {
           if (option === 'park' && outdoorActivityRecommend) {
-            // 关闭当前弹窗，打开绿地推荐弹窗
             setOutdoorActivityRecommend(null);
             setParkRecommendationModal({
               parks: outdoorActivityRecommend.parks,
               locationName: outdoorActivityRecommend.locationName,
             });
           } else if (option === 'walk') {
-            // 例行遛狗，关闭弹窗并发送确认消息
             setOutdoorActivityRecommend(null);
-            // 可以在这里添加额外的处理，比如记录遛狗日志等
           }
         }}
         onShowCareTip={(message) => {
