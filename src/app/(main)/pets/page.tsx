@@ -404,7 +404,7 @@ export default function PetsPage() {
                       value={formData.weight}
                       onChange={(e) => {
                         const val = e.target.value;
-                        setFormData({ ...formData, weight: val === '' ? '' : parseFloat(val) });
+                        setFormData({ ...formData, weight: val === '' ? 0 : parseFloat(val) });
                       }}
                       className="w-full px-4 py-2 rounded-xl border border-gray-200 focus:border-primary-500 focus:ring-2 focus:ring-primary-200 outline-none"
                       placeholder="例如：5.5"
