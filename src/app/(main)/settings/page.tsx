@@ -149,10 +149,10 @@ export default function SettingsPage() {
                     onClick={async () => {
                       if (pushSubscribed) {
                         const result = await unsubscribe();
-                        setTestResult(result.success ? '已关闭推送通知' : result.message);
+                        setTestResult(result?.success ? '已关闭推送通知' : result?.message || '操作失败');
                       } else {
                         const result = await requestPermissionAndSubscribe();
-                        setTestResult(result.message);
+                        setTestResult(result.message || '操作失败');
                       }
                     }}
                     className={`relative w-12 h-6 rounded-full transition-colors ${
