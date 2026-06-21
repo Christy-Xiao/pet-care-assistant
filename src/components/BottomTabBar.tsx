@@ -7,7 +7,7 @@ import {
   Home,
   Dog,
   Heart,
-  MapPin,
+  BarChart3,
   Calendar,
   MessageCircle,
   Settings,
@@ -17,7 +17,8 @@ const tabs = [
   { href: '/', icon: Home, label: '首页' },
   { href: '/pets', icon: Dog, label: '宠物' },
   { href: '/health', icon: Heart, label: '健康' },
-  { href: '/map', icon: MapPin, label: '绿地' },
+  { href: '/weekly-report', icon: BarChart3, label: '周报' },
+  { href: '/schedule', icon: Calendar, label: '日程' },
   { href: '/chat', icon: MessageCircle, label: 'AI' },
 ];
 
@@ -25,7 +26,7 @@ export default function BottomTabBar() {
   const pathname = usePathname();
 
   return (
-    <nav className="absolute bottom-0 left-0 right-0 z-50 glass border-t border-orange-100/50 pb-safe">
+    <nav className="fixed bottom-0 left-0 right-0 z-50 glass border-t border-orange-100/50 pb-safe">
       <div className="flex items-center justify-around h-16 max-w-lg mx-auto">
         {tabs.map((tab) => {
           const isActive =
