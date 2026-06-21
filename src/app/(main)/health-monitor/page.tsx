@@ -19,6 +19,8 @@ import {
   Check,
   Apple,
   Utensils,
+  Footprints,
+  Zap,
 } from 'lucide-react';
 
 // ===== 类型定义 =====
@@ -60,11 +62,28 @@ interface HealthRecord {
   result?: { severity?: string; description?: string };
 }
 
+interface ExerciseRecord {
+  id: string;
+  pet_id: string;
+  user_id: string;
+  exercise_date: string;
+  start_time: string | null;
+  end_time: string | null;
+  duration_min: number;
+  distance_km: number;
+  avg_speed: number;
+  calories_burned: number;
+  weather: string | null;
+  mood: string;
+  notes: string | null;
+}
+
 interface MonitorData {
   weightRecords: WeightRecord[];
   bathroomRecords: BathroomRecord[];
   dietRecords: DietRecord[];
   healthRecords: HealthRecord[];
+  exerciseRecords: ExerciseRecord[];
   currentWeight: number | null;
   weightChange: number;
 }
@@ -789,6 +808,190 @@ function StatCard({
   );
 }
 
+// ===== 运动趋势图 =====
+function ExerciseChart({ records }: { records: ExerciseRecord[] }) {
+  const [range, setRange] = useState<'7' | '14' | '30'>('14');
+
+  const filtered = (() => {
+    if (records.length === 0) return [];
+    const now = new Date();
+    const daysAgo = parseInt(range);
+    const cutoff = new Date(now.getTime() - daysAgo * 24 * 60 * 60 * 1000);
+    let filtered = records
+      .filter((r) => new Date(r.exercise_date) >= cutoff)
+      .filter((r) => r.distance_km > 0); // 排除休息日
+    filtered.sort((a, b) => new Date(a.exercise_date).getTime() - new Date(b.exercise_date).getTime());
+    return filtered;
+  })();
+
+  // 统计数据
+  const totalDistance = filtered.reduce((sum, r) => sum + (r.distance_km || 0), 0);
+  const totalDuration = filtered.reduce((sum, r) => sum + (r.duration_min || 0), 0);
+  const avgSpeed = filtered.length > 0 ? filtered.reduce((sum, r) => sum + (r.avg_speed || 0), 0) / filtered.length : 0;
+  const activeDays = filtered.length;
+  const restDayCount = (() => {
+    const restRecords = records.filter(r => r.distance_km === 0 || r.duration_min === 0);
+    if (records.length === 0) return 0;
+    const now = new Date();
+    const daysAgo = parseInt(range);
+    const cutoff = new Date(now.getTime() - daysAgo * 24 * 60 * 60 * 1000);
+    return restRecords.filter(r => new Date(r.exercise_date) >= cutoff).length;
+  })();
+
+  // 图表参数
+  const maxDist = Math.max(...filtered.map((r) => r.distance_km), 4);
+  const width = 320, height = 160;
+  const leftPad = 40, bottomPad = 24, topPad = 10;
+  const chartWidth = width - leftPad - 10;
+  const chartHeight = height - bottomPad - topPad;
+  const barWidth = Math.min(20, (chartWidth / Math.max(filtered.length, 1)) * 0.6);
+
+  const bars = filtered.map((r, i) => ({
+    x: leftPad + (i / Math.max(filtered.length - 1, 1)) * chartWidth - barWidth / 2,
+    y: topPad + chartHeight - ((r.distance_km || 0) / maxDist) * chartHeight,
+    h: ((r.distance_km || 0) / maxDist) * chartHeight,
+    record: r,
+  }));
+
+  const yTicks = [maxDist, (maxDist / 2).toFixed(1), '0'];
+
+  const moodEmoji: Record<string, string> = {
+    excellent: '😆',
+    good: '🙂',
+    tired: '😮‍💨',
+    poor: '💤',
+  };
+
+  return (
+    <div className="rounded-2xl bg-white shadow-sm border border-gray-100 p-5">
+      <div className="flex items-center justify-between mb-4">
+        <div>
+          <h3 className="font-bold text-gray-800 text-lg flex items-center gap-1.5">
+            <Footprints className="w-5 h-5 text-emerald-500" />
+            运动趋势
+          </h3>
+          {filtered.length > 0 && (
+            <p className="text-sm mt-0.5 flex items-center gap-2 flex-wrap">
+              <span><span className="text-xl font-bold text-emerald-600">{totalDistance.toFixed(1)}</span><span className="text-gray-400">km</span></span>
+              <span className="text-gray-300">|</span>
+              <span>{totalDuration}<span className="text-gray-400">min</span></span>
+              <span className="text-gray-300">|</span>
+              <span>活跃{activeDays}天</span>
+              {restDayCount > 0 && (
+                <>
+                  <span className="text-gray-300">|</span>
+                  <span className="text-gray-400">休息{restDayCount}天</span>
+                </>
+              )}
+            </p>
+          )}
+        </div>
+        <div className="flex gap-1">
+          {(['7', '14', '30'] as const).map((r) => (
+            <button
+              key={r}
+              onClick={() => setRange(r)}
+              className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
+                range === r ? 'bg-emerald-400 text-white' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+              }`}
+            >
+              {r}天
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="relative">
+        {bars.length > 0 ? (
+          <svg viewBox={`0 0 ${width} ${height}`} className="w-full">
+            {/* Y轴网格线 */}
+            {yTicks.map((tick, i) => {
+              const yVal = parseFloat(String(tick));
+              const yPos = topPad + chartHeight - (yVal / maxDist) * chartHeight;
+              return (
+                <g key={i}>
+                  <line x1={leftPad} y1={yPos} x2={width - 10} y2={yPos} stroke="#f0f0f0" strokeWidth="1" />
+                  <text x={leftPad - 6} y={yPos + 3} textAnchor="end" fontSize="9" fill="#9ca3af">
+                    {tick}km
+                  </text>
+                </g>
+              );
+            })}
+
+            {/* 柱状图 */}
+            {bars.map((b, i) => {
+              const mood = b.record.mood || 'good';
+              let color = '#34d399'; // green default
+              if (mood === 'excellent') color = '#10b981';
+              else if (mood === 'tired') color = '#fbbf24';
+              else if (mood === 'poor') color = '#9ca3af';
+              return (
+                <g key={i}>
+                  <rect
+                    x={b.x}
+                    y={topPad + chartHeight - b.h}
+                    width={barWidth}
+                    height={b.h}
+                    rx="3"
+                    ry="3"
+                    fill={color}
+                    opacity="0.85"
+                    className="cursor-pointer hover:opacity-100 transition-opacity"
+                  />
+                  {/* 顶部圆点+心情emoji提示 */}
+                  <circle cx={b.x + barWidth / 2} cy={topPad + chartHeight - b.h} r="3" fill={color} />
+                </g>
+              );
+            })}
+
+            {/* X轴日期标签 */}
+            {bars.filter((_, i) =>
+              bars.length <= 7 ? true : i % Math.ceil(bars.length / 5) === 0 || i === bars.length - 1
+            ).map((b, i) => (
+              <text key={i} x={b.x + barWidth / 2} y={height - 4} textAnchor="middle" fontSize="9" fill="#9ca3af">
+                {new Date(b.record.exercise_date).toLocaleDateString('zh-CN', { month: 'numeric', day: 'numeric' })}
+              </text>
+            ))}
+
+            {/* 渐变定义 */}
+            <defs>
+              <linearGradient id="exerciseBarGrad" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="#10b981" stopOpacity="1" />
+                <stop offset="100%" stopColor="#34d399" stopOpacity="0.8" />
+              </linearGradient>
+            </defs>
+          </svg>
+        ) : (
+          <div className="flex flex-col items-center py-8">
+            <Footprints className="w-10 h-10 text-gray-300 mb-2" />
+            <p className="text-sm text-gray-400">暂无运动记录</p>
+          </div>
+        )}
+
+        {/* 底部详情列表（折叠） */}
+        {filtered.length > 0 && (
+          <div className="mt-3 space-y-1.5 max-h-36 overflow-y-auto">
+            {[...filtered].reverse().slice(0, 10).map((r) => (
+              <div key={r.id} className="flex items-center justify-between text-xs px-2 py-1.5 rounded-lg bg-gray-50/80">
+                <div className="flex items-center gap-1.5">
+                  <span>{moodEmoji[r.mood] || '🐾'}</span>
+                  <span className="font-medium text-gray-600">{new Date(r.exercise_date).toLocaleDateString('zh-CN', { month: 'short', day: 'numeric' })}</span>
+                  {r.weather && <span className="text-gray-400">{r.weather}</span>}
+                </div>
+                <div className="flex items-center gap-2 text-gray-500">
+                  <span className="font-semibold text-emerald-600">{r.distance_km}km</span>
+                  <span>{r.duration_min}min</span>
+                  {r.notes && <span className="text-gray-400 truncate max-w-[120px]" title={r.notes}>{r.notes}</span>}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ===== SVG体重趋势图 =====
 function WeightChart({
   records,
@@ -1405,12 +1608,13 @@ export default function HealthMonitorPage() {
 
     setLoading(true);
     try {
-      const [healthRes, petsRes, weightRes, bathroomRes, dietRes] = await Promise.all([
+      const [healthRes, petsRes, weightRes, bathroomRes, dietRes, exerciseRes] = await Promise.all([
         fetch(`/api/health-records?petId=${selectedPet.id}`),
         fetch(`/api/pets?id=${selectedPet.id}`),
         fetch(`/api/weight-records?petId=${selectedPet.id}`),
         fetch(`/api/bathroom-records?petId=${selectedPet.id}`),
         fetch(`/api/diet-records?petId=${selectedPet.id}`),
+        fetch(`/api/exercise-records?petId=${selectedPet.id}`),
       ]);
 
       const healthRecords: HealthRecord[] = healthRes.ok ? await healthRes.json() : [];
@@ -1418,6 +1622,7 @@ export default function HealthMonitorPage() {
       const weightRecords: WeightRecord[] = weightRes.ok ? await weightRes.json() : [];
       const bathroomRecords: BathroomRecord[] = bathroomRes.ok ? await bathroomRes.json() : [];
       const dietRecords: DietRecord[] = dietRes.ok ? await dietRes.json() : [];
+      const exerciseRecords: ExerciseRecord[] = exerciseRes.ok ? await exerciseRes.json() : [];
 
       const currentPet = petsData.find((p: any) => p.id === selectedPet.id);
       const currentWeight = currentPet?.weight ? parseFloat(currentPet.weight) : null;
@@ -1435,7 +1640,7 @@ export default function HealthMonitorPage() {
         weightChange = sorted[sorted.length - 1].weight - sorted[0].weight;
       }
 
-      setData({ weightRecords, bathroomRecords, dietRecords, healthRecords, currentWeight, weightChange });
+      setData({ weightRecords, bathroomRecords, dietRecords, healthRecords, exerciseRecords, currentWeight, weightChange });
     } catch (error) {
       console.error('获取监控数据失败:', error);
     } finally {
@@ -1488,6 +1693,9 @@ export default function HealthMonitorPage() {
             <StatCard label="异常" value={anomalyCount} icon={AlertTriangle} colorClass="bg-red-50" />
             <StatCard label="用药" value={data.healthRecords.filter((r) => r.type === 'medication').length} icon={Calendar} colorClass="bg-purple-50" />
           </div>
+
+          {/* 运动趋势图 */}
+          <ExerciseChart records={data.exerciseRecords} />
 
           {/* 体重趋势图 */}
           <WeightChart
