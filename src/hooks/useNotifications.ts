@@ -159,7 +159,7 @@ export function useNotifications() {
 
       const subscription = await reg.pushManager.subscribe({
         userVisibleOnly: true, // 必须为 true（安全限制）
-        applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
+        applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY) as BufferSource,
       });
 
       console.log('[通知] 推送订阅成功:', subscription.endpoint.slice(0, 60));
