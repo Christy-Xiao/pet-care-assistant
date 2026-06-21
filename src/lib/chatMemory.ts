@@ -1,4 +1,7 @@
 import { query, insert, execute } from './db';
+import { ZhipuAI } from 'zhipuai';
+
+const aiClient = new ZhipuAI({ apiKey: process.env.ZHIPUAI_API_KEY || '' });
 
 export interface ChatMemory {
   id: number;
@@ -9,16 +12,24 @@ export interface ChatMemory {
   created_at: Date;
 }
 
-// 用户长期记忆表 - 存储用户的关键信息（宠物过敏、偏好等）
+// 用户长期记忆表 - 存储用户的关键信息（宠物过敏、偏好、恐惧、行为基线等）
 export interface UserLongTermMemory {
   id: number;
   user_id: number;
   pet_id: string | null;
   pet_name: string | null;
-  memory_type: 'allergy' | 'preference' | 'health' | 'behavior' | 'other';
+  memory_type: 'allergy' | 'preference' | 'health' | 'behavior' | 'fear' | 'baseline' | 'other';
   memory_content: string;
   created_at: Date;
   updated_at: Date;
+}
+
+// AI 提取出的记忆结构
+export interface ExtractedMemory {
+  type: 'allergy' | 'preference' | 'health' | 'behavior' | 'fear' | 'baseline' | 'other';
+  content: string;
+  petName?: string;
+  confidence: number; // 0-1 置信度
 }
 
 // 初始化聊天记忆表
@@ -52,7 +63,7 @@ export async function initUserLongTermMemoryTable() {
         user_id INT NOT NULL,
         pet_id VARCHAR(100),
         pet_name VARCHAR(100),
-        memory_type ENUM('allergy', 'preference', 'health', 'behavior', 'other') NOT NULL,
+        memory_type ENUM('allergy', 'preference', 'health', 'behavior', 'fear', 'baseline', 'other') NOT NULL,
         memory_content TEXT NOT NULL,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -96,7 +107,7 @@ export async function getChatMemory(userId: number, limit: number = 20): Promise
 // 保存用户长期记忆（关键信息）
 export async function saveUserLongTermMemory(
   userId: number,
-  memoryType: 'allergy' | 'preference' | 'health' | 'behavior' | 'other',
+  memoryType: 'allergy' | 'preference' | 'health' | 'behavior' | 'fear' | 'baseline' | 'other',
   memoryContent: string,
   petId?: string,
   petName?: string
@@ -240,15 +251,32 @@ export async function getUserMemorySummary(userId: number): Promise<string | nul
       
       // 按类型分组
       const allergyMemories = longTermMemories.filter(m => m.memory_type === 'allergy');
+      const fearMemories = longTermMemories.filter(m => m.memory_type === 'fear');
       const preferenceMemories = longTermMemories.filter(m => m.memory_type === 'preference');
       const healthMemories = longTermMemories.filter(m => m.memory_type === 'health');
       const behaviorMemories = longTermMemories.filter(m => m.memory_type === 'behavior');
+      const baselineMemories = longTermMemories.filter(m => m.memory_type === 'baseline');
       
       if (allergyMemories.length > 0) {
-        summary += '🔴 过敏信息：\n';
+        summary += '🔴 过敏/不耐受信息：\n';
         allergyMemories.forEach(m => {
-          const petPrefix = m.pet_name ? `${m.pet_name}对` : '';
+          const petPrefix = m.pet_name ? `${m.pet_name}` : '';
           summary += `  - ${petPrefix}${m.memory_content}\n`;
+        });
+      }
+      
+      if (fearMemories.length > 0) {
+        summary += '⚡ 恐惧/害怕：\n';
+        fearMemories.forEach(m => {
+          const petPrefix = m.pet_name ? `${m.pet_name}` : '';
+          summary += `  - ${petPrefix}${m.memory_content}\n`;
+        });
+      }
+      
+      if (baselineMemories.length > 0) {
+        summary += '📊 行为基准线：\n';
+        baselineMemories.slice(0, 2).forEach(m => {
+          summary += `  - ${m.memory_content}\n`;
         });
       }
       
@@ -267,7 +295,7 @@ export async function getUserMemorySummary(userId: number): Promise<string | nul
       }
       
       if (behaviorMemories.length > 0) {
-        summary += '🎾 行为活动：\n';
+        summary += '🎾 行为习惯：\n';
         behaviorMemories.slice(0, 2).forEach(m => {
           summary += `  - ${m.memory_content}\n`;
         });
@@ -414,6 +442,202 @@ export async function detectAndUpdatePetAllergy(
   } catch (error) {
     console.error('检测宠物过敏信息失败:', error);
     return null;
+  }
+}
+
+// ==================== AI 驱动的长期记忆提取（场景一核心） ====================
+
+/**
+ * 用智谱 AI 从用户消息中提取结构化长期记忆
+ * 替代原来的纯正则匹配，能理解自然语言的各种表达方式
+ * 
+ * 支持提取的记忆类型：
+ * - allergy: 过敏信息（"九万吃芒果起红疹了" → 对芒果过敏）
+ * - fear: 恐惧/害怕（"九万打雷时吓得发抖" → 害怕打雷声）
+ * - behavior: 行为习惯（"每天晚上8点遛狗45分钟" → 遛狗规律）
+ * - health: 健康状况（"最近精神不太好" → 精神萎靡）
+ * - preference: 偏好（"特别喜欢吃鸡肉干" → 食物偏好）
+ * - baseline: 行为基准线（由系统自动计算，如平均运动量）
+ */
+export async function extractMemoriesWithAI(
+  userId: number,
+  userMessage: string,
+  pets: any[] = []
+): Promise<ExtractedMemory[]> {
+  try {
+    const petNames = pets.map(p => p.name).join('、') || '未知宠物';
+    
+    const systemPrompt = `你是一个宠物长期记忆提取助手。分析用户关于宠物的话，提取值得长期记住的关键信息。
+
+【记忆类型定义】
+- allergy: 过敏/不耐受（食物、药物、环境等引起的过敏反应）
+- fear: 恐惧/害怕（对声音、物体、场景的恐惧，如怕打雷、怕鞭炮、怕陌生人、怕洗澡）
+- behavior: 行为习惯（固定的行为模式，如遛狗时间/时长、睡觉位置、进食习惯）
+- health: 健康状况（生病症状、精神状态、身体异常）
+- preference: 喜好/偏好（喜欢或讨厌的东西）
+- other: 其他值得记录的重要信息
+
+【用户的宠物】：${petNames}
+
+【规则】
+1. 只提取明确陈述的事实，不要猜测
+2. 每条记忆要简洁具体
+3. 同类记忆合并，不要重复
+4. 如果没有值得长期记住的信息，返回空数组
+5. 置信度 0.8 以上才返回（确保准确性）
+
+请以严格 JSON 格式返回，不要包含其他文字：
+{"memories":[{"type":"类型","content":"具体内容","petName":"宠物名(如有)","confidence":0.9}]}`;
+
+    const response = await aiClient.chat.completions.create({
+      model: 'glm-4-flash', // 轻量模型，快速便宜
+      messages: [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: userMessage }
+      ],
+      temperature: 0.1, // 低温度保证稳定输出
+      max_tokens: 500,
+    });
+
+    const text = response.choices[0]?.message?.content || '';
+    
+    // 从回复中解析 JSON
+    const jsonMatch = text.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) return [];
+    
+    const parsed = JSON.parse(jsonMatch[0]);
+    const memories: ExtractedMemory[] = (parsed.memories || [])
+      .filter((m: any) => m.type && m.content && (m.confidence || 0) >= 0.7)
+      .map((m: any) => ({
+        type: m.type as ExtractedMemory['type'],
+        content: m.content,
+        petName: m.petName || undefined,
+        confidence: m.confidence || 0.8,
+      }));
+
+    // 将提取到的记忆保存到数据库
+    for (const mem of memories) {
+      const matchedPet = mem.petName 
+        ? pets.find(p => p.name === mem.petName) 
+        : pets.length === 1 ? pets[0] : null;
+      
+      await saveUserLongTermMemory(
+        userId, 
+        mem.type, 
+        mem.content,
+        matchedPet?.id,
+        matchedPet?.name || mem.petName
+      );
+    }
+
+    console.log(`[AI记忆提取] 从消息中提取到 ${memories.length} 条长期记忆`);
+    return memories;
+  } catch (error) {
+    console.error('[AI记忆提取] 失败，降级到正则:', error);
+    // 降级：如果 AI 失败，回退到正则匹配
+    await extractKeyMemories(userId, pets);
+    return [];
+  }
+}
+
+/**
+ * 获取指定类型的宠物记忆（用于天气联动等场景）
+ */
+export async function getPetMemoriesByType(
+  userId: number,
+  memoryType: string,
+  petId?: string
+): Promise<UserLongTermMemory[]> {
+  try {
+    let sql: string;
+    let params: any[];
+    
+    if (petId) {
+      sql = `SELECT * FROM user_long_term_memory WHERE user_id = ? AND memory_type = ? AND pet_id = ? ORDER BY updated_at DESC`;
+      params = [userId, memoryType, petId];
+    } else {
+      sql = `SELECT * FROM user_long_term_memory WHERE user_id = ? AND memory_type = ? ORDER BY updated_at DESC`;
+      params = [userId, memoryType];
+    }
+    
+    const memories: any[] = await query(sql, params);
+    return memories;
+  } catch (error) {
+    console.error(`获取${memoryType}类型记忆失败:`, error);
+    return [];
+  }
+}
+
+/**
+ * 更新/创建行为基线记录（场景三核心）
+ * 根据最近 N 天的数据计算平均值，写入 baseline 类型记忆
+ */
+export async function updateBaselineMemory(
+  userId: number,
+  petId: string,
+  petName: string,
+  metricType: 'walk_duration' | 'meal_count' | 'weight',
+  currentValue: number,
+  days: number = 14
+): Promise<{ isAnomaly: boolean; baseline: number; percentChange: number }> {
+  try {
+    // 查询已有的基线数据
+    const existingBaselines: any[] = await query(
+      `SELECT * FROM user_long_term_memory 
+       WHERE user_id = ? AND pet_id = ? AND memory_type = 'baseline' AND memory_content LIKE ?
+       ORDER BY updated_at DESC LIMIT 1`,
+      [userId, petId, `%${metricType}%`]
+    );
+    
+    let baselineValue: number;
+    let anomalyThreshold = 0.4; // 偏离40%算异常
+    
+    if (existingBaselines.length > 0) {
+      // 已有基线：从已有记录解析出历史值
+      const content = existingBaselines[0].memory_content;
+      const match = content.match(/平均([\d.]+)(分钟|次|kg)/);
+      baselineValue = match ? parseFloat(match[1]) : currentValue;
+      
+      // 计算偏离度
+      const percentChange = Math.abs(currentValue - baselineValue) / baselineValue;
+      
+      if (percentChange > anomalyThreshold) {
+        // 异常！更新并标记
+        const direction = currentValue < baselineValue ? '低于' : '高于';
+        const unitMap: Record<string, string> = { walk_duration: '分钟', meal_count: '次', weight: 'kg' };
+        
+        await saveUserLongTermMemory(
+          userId, 'baseline',
+          `${petName}${metricType === 'walk_duration' ? '每日运动' : metricType === 'meal_count' ? '每日进食' : '体重'}基线：平均${baselineValue}${unitMap[metricType]}，当前${currentValue}${unitMap[metricType]}(${direction}正常值${(percentChange * 100).toFixed(0)}%)`,
+          petId, petName
+        );
+        
+        // 更新原有基线记录时间
+        await execute(
+          `UPDATE user_long_term_memory SET updated_at = NOW() WHERE id = ?`,
+          [existingBaselines[0].id]
+        );
+        
+        return { isAnomaly: true, baseline: baselineValue, percentChange };
+      }
+      
+      return { isAnomaly: false, baseline: baselineValue, percentChange };
+    } else {
+      // 首次建立基线：直接用当前值作为初始基线
+      const unitMap: Record<string, string> = { walk_duration: '分钟', meal_count: '次', weight: 'kg' };
+      const labelMap: Record<string, string> = { walk_duration: '每日运动量', meal_count: '每日进食次数', weight: '体重' };
+      
+      await saveUserLongTermMemory(
+        userId, 'baseline',
+        `${petName}${labelMap[metricType]}基线：约${currentValue.toFixed(0)}${unitMap[metricType]}（基于近期数据统计）`,
+        petId, petName
+      );
+      
+      return { isAnomaly: false, baseline: currentValue, percentChange: 0 };
+    }
+  } catch (error) {
+    console.error('[更新行为基线] 错误:', error);
+    return { isAnomaly: false, baseline: currentValue, percentChange: 0 };
   }
 }
 

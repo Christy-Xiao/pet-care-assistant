@@ -221,6 +221,8 @@ export function useVoiceAssistant() {
       selectedPetId: appState.selectedPetId,
     };
 
+    console.log('[语音] 开始意图提取, 文本:', text);
+
     const response = await fetch('/api/voice/extract', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -228,12 +230,16 @@ export function useVoiceAssistant() {
     });
 
     const data = await response.json();
+    console.log('[语音] 意图提取返回:', data);
 
     if (!response.ok) {
       throw new Error(data.error || '意图提取失败');
     }
 
-    return data.extraction;
+    const extraction = data.extraction;
+    console.log(`[语音] ✅ 提取到 ${extraction?.intents?.length || 0} 个意图:`, extraction?.intents?.map((i: any) => i.intent));
+
+    return extraction;
   }
 
   // 确认执行 — 串行执行所有意图
@@ -344,28 +350,64 @@ export function useVoiceAssistant() {
     if (!petId && appState.pets.length > 0) { petId = appState.pets[0].id; }
 
     const scheduleData: any = {
-      id: `schedule_${Date.now()}`,
-      petId,
+      pet_id: petId,
       title: data.title || data.description || '护理日程',
       description: data.description || data.title || '',
-      eventType: mapEventType(data.event_type),
-      dueDate: parseTime(data.time),
-      status: 'pending' as const,
+      event_type: mapEventType(data.event_type),
+      due_date: parseTime(data.time),
       priority: mapPriority(data.priority),
-      source: 'voice_assistant',
-      notificationSent: false,
-      createdAt: new Date().toISOString(),
     };
 
-    await fetch('/api/care-schedules', {
+    console.log('[语音] 创建日程数据:', JSON.stringify(scheduleData));
+
+    const res = await fetch('/api/schedules', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(scheduleData),
-    }).catch(() => null);
+    });
 
-    dispatch({ type: 'ADD_SCHEDULE', payload: scheduleData });
+    if (!res.ok) {
+      const errText = await res.text().catch(() => '');
+      console.error('[语音] 创建日程失败:', res.status, errText);
+      return '创建日程失败，请重试';
+    }
+
+    // 用 API 返回的数据做 dispatch（确保格式一致）
+    let createdSchedule: any;
+    try {
+      const apiRes = await res.json();
+      // API 返回蛇形字段，需映射为前端驼峰
+      createdSchedule = {
+        id: apiRes.id,
+        petId: apiRes.pet_id,
+        title: apiRes.title,
+        description: apiRes.description || '',
+        eventType: apiRes.event_type,
+        dueDate: apiRes.due_date,
+        status: apiRes.status || 'pending',
+        priority: apiRes.priority || 'medium',
+        source: 'voice_assistant',
+        notificationSent: apiRes.notification_sent || false,
+      };
+    } catch {
+      // API 返回异常时用本地构造的 fallback
+      createdSchedule = {
+        id: `schedule_${Date.now()}`,
+        petId: petId,
+        title: scheduleData.title,
+        description: scheduleData.description,
+        eventType: mapEventType(data.event_type),
+        dueDate: parseTime(data.time),
+        status: 'pending' as const,
+        priority: mapPriority(data.priority),
+        source: 'voice_assistant',
+        notificationSent: false,
+      };
+    }
     
-    const timeStr = formatTime(scheduleData.dueDate);
+    dispatch({ type: 'ADD_SCHEDULE', payload: createdSchedule });
+    
+    const timeStr = formatTime(scheduleData.due_date);
     return `已创建日程「${scheduleData.title}」${timeStr}`;
   }
 
@@ -479,6 +521,7 @@ export function useVoiceAssistant() {
     ).join('、');
     return list || '还没有添加任何宠物';
   }
+
 
   // 重置状态
   const reset = useCallback(() => {

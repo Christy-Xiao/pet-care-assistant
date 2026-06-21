@@ -72,7 +72,8 @@ export default function SchedulePage() {
 
   // 打开编辑弹窗
   const openEditModal = (schedule: CareSchedule) => {
-    const dateStr = schedule.dueDate.split('T')[0];
+    const dueDate = schedule.dueDate || '';
+    const dateStr = dueDate.split('T')[0] || '';
     setFormData({
       title: schedule.title,
       description: schedule.description || '',

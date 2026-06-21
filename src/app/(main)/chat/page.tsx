@@ -853,20 +853,28 @@ function saveConversationsToLocalStorage(conversations: Conversation[]) {
 // 保存所有对话到 localStorage + 异步同步服务器
 async function saveConversations(conversations: Conversation[]) {
   // 先存本地（快速，不阻塞）
-  saveConversationsToLocalStorage(conversations);
-  
+  try {
+    saveConversationsToLocalStorage(conversations);
+    console.log('[聊天保存] localStorage写入成功, 共', conversations.length, '个对话');
+  } catch (e) {
+    console.error('[聊天保存] localStorage写入失败:', e);
+  }
+
   // 异步同步到服务器（不阻塞 UI）
   const storedUser = localStorage.getItem('user');
-  if (!storedUser) return;
+  if (!storedUser) {
+    console.log('[聊天保存] 未登录，跳过服务器同步');
+    return;
+  }
   
-  try {
-    let user;
-    try { user = JSON.parse(storedUser); } catch { return; }
-    if (!user?.id) return;
-    
-    // 只同步当前活跃的对话（最近更新的那个）
-    for (const conv of conversations) {
-      fetch('/api/conversations', {
+  let user;
+  try { user = JSON.parse(storedUser); } catch { return; }
+  if (!user?.id) return;
+
+  // 同步所有对话到服务器
+  for (const conv of conversations) {
+    try {
+      const res = await fetch('/api/conversations', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -875,10 +883,16 @@ async function saveConversations(conversations: Conversation[]) {
           title: conv.title,
           messages: conv.messages,
         }),
-      }).catch(() => {}); // 静默失败，不影响体验
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        console.warn('[聊天保存] 服务器同步失败:', conv.id, data.error || data.reason || '未知错误');
+      } else {
+        console.log('[聊天保存] 服务器同步成功:', conv.id, conv.title);
+      }
+    } catch (e) {
+      console.warn('[聊天保存] 服务器同步异常:', conv.id, e);
     }
-  } catch {
-    // 静默失败
   }
 }
 
@@ -2761,7 +2775,10 @@ export default function ChatPage() {
   // 保存对话到localStorage
   const saveCurrentConversation = useCallback((updatedMessages: Message[], convId?: string) => {
     const targetConvId = convId || currentConversationId;
-    if (!targetConvId) return;
+    if (!targetConvId) {
+      console.warn('[saveCurrentConversation] 跳过: targetConvId为空, currentConversationId=', currentConversationId);
+      return;
+    }
     
     // 生成标题（取第一条用户消息的前20个字符）
     const firstUserMsg = updatedMessages.find(m => m.role === 'user');
@@ -2777,7 +2794,12 @@ export default function ChatPage() {
           : c
       );
       // 按更新时间排序
-      updated.sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime());
+      try {
+        updated.sort((a, b) => (b.updatedAt ? new Date(b.updatedAt).getTime() : 0) - (a.updatedAt ? new Date(a.updatedAt).getTime() : 0));
+      } catch (sortErr) {
+        console.error('[saveCurrentConversation] 排序失败:', sortErr);
+      }
+      console.log('[saveCurrentConversation] 正在保存对话', targetConvId, '标题:', title, '消息数:', updatedMessages.length);
       saveConversations(updated);
       return updated;
     });
@@ -2796,8 +2818,21 @@ export default function ChatPage() {
     const petNames = pets.map((p: any) => p.name).join('、');
     
     const newConv = createNewConversation(pets.length > 0, petNames, urgentSchedules);
+    
+    // 先把当前对话消息保存到 state（防止丢失）
+    const currentConv = conversations.find(c => c.id === currentConversationId);
     setConversations(prev => {
-      const updated = [newConv, ...prev];
+      let updated = [...prev];
+      // 如果当前对话有消息，确保它在列表中
+      if (currentConv) {
+        const existingIdx = updated.findIndex(c => c.id === currentConversationId);
+        if (existingIdx >= 0) {
+          updated[existingIdx] = { ...currentConv };
+        }
+      }
+      // 新对话插到最前面
+      updated = [newConv, ...updated];
+      console.log('[handleNewChat] 创建新对话, 总对话数:', updated.length);
       saveConversations(updated);
       return updated;
     });
@@ -2811,7 +2846,7 @@ export default function ChatPage() {
     setShowConversationList(false);
   };
 
-  // 删除对话
+  // 删除单条对话
   const handleDeleteConversation = (id: string) => {
     setConversations(prev => {
       const updated = prev.filter(c => c.id !== id);
@@ -2821,6 +2856,23 @@ export default function ChatPage() {
       if (id === currentConversationId) {
         setCurrentConversationId(updated[0]?.id || null);
       }
+      return updated;
+    });
+  };
+
+  // 批量删除多条对话（一次性操作，避免 setState 合并问题）
+  const handleDeleteBatch = (ids: string[]) => {
+    const idSet = new Set(ids);
+    setConversations(prev => {
+      const updated = prev.filter(c => !idSet.has(c.id));
+      
+      // 如果当前被删除的对话包含当前激活的，切换到第一个
+      if (currentConversationId && idSet.has(currentConversationId)) {
+        setCurrentConversationId(updated[0]?.id || null);
+      }
+      
+      saveConversations(updated);
+      console.log('[handleDeleteBatch] 批量删除', ids.length, '条, 剩余:', updated.length);
       return updated;
     });
   };
@@ -3917,7 +3969,15 @@ ${generateCareMessage(undefined)}
   };
 
   return (
-    <ChatLayout onNewChat={handleNewChat} userId={userId}>
+    <ChatLayout 
+      onNewChat={handleNewChat} 
+      userId={userId} 
+      conversations={conversations}
+      currentConversationId={currentConversationId}
+      onSelectConversation={handleSelectConversation}
+      onDeleteConversation={handleDeleteConversation}
+      onDeleteBatch={handleDeleteBatch}
+    >
     <div className="h-full flex flex-col relative">
         {/* Data indicator */}
         {hasPets && (

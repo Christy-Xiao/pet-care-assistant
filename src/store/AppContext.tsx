@@ -168,6 +168,19 @@ export function AppProvider({ children }: { children: ReactNode }) {
           }));
           dispatch({ type: 'SET_PETS', payload: normalizedPets });
           setApiAvailable(true);
+
+          // 🆕 自动选中第一只宠物（如果没有选中的话）
+          if (normalizedPets.length > 0) {
+            const savedSelectedId = typeof window !== 'undefined' ? localStorage.getItem('selectedPetId') : null;
+            if (!savedSelectedId || !normalizedPets.find((p: any) => p.id === savedSelectedId)) {
+              dispatch({ type: 'SELECT_PET', payload: normalizedPets[0].id });
+              if (typeof window !== 'undefined') {
+                localStorage.setItem('selectedPetId', normalizedPets[0].id);
+              }
+            } else {
+              dispatch({ type: 'SELECT_PET', payload: savedSelectedId });
+            }
+          }
         }
         if (schedulesRes.ok) {
           const schedules = await schedulesRes.json();
@@ -284,7 +297,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   };
 
   // ===== 发送真正的 PWA 系统级推送通知 =====
-  const sendPWANotification = useCallback(async (title: string, body: string) => {
+  const sendPWANotification = useCallback(async (title: string, body: string, options?: { url?: string; tag?: string }) => {
     // 同时做两件事：1. 应用内通知 + 2. 真正的 PWA Push
     try {
       // 1. 应用内通知（fallback）
@@ -307,8 +320,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
           title,
           body,
           icon: '/icons/icon-192x192.png',
-          url: '/',
-          tag: `weather-${new Date().toDateString()}`,
+          url: options?.url || '/',
+          tag: options?.tag || `push-${Date.now()}`,
           broadcast: true,  // 广播给所有订阅用户
         }),
       }).catch((err) => console.log('[AppContext] PWA推送发送失败(可能无VAPID配置或无订阅):', err));
@@ -316,6 +329,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   }, [dispatch]);
 
   // 检查天气并生成AI智能提醒 → 通过 PWA 推送
+  // 【场景二核心】天气 + 恐惧记忆联动：雷暴天自动提醒安抚怕打雷的宠物
   const checkWeatherNotifications = async () => {
     try {
       const weatherStr = localStorage.getItem('weatherData');
@@ -331,8 +345,46 @@ export function AppProvider({ children }: { children: ReactNode }) {
       const lastWeatherCheck = localStorage.getItem('lastWeatherNotification');
       const today = new Date().toDateString();
       
-      // 每天只提醒一次
+      // 每天只提醒一次（普通天气）
       if (lastWeatherCheck === today) return;
+
+      // ===== 【场景二】检查是否有雷暴/恶劣天气 + 恐惧记忆联动 =====
+      const isStorm = [95, 96, 99].includes(weatherCode);           // 雷暴
+      const isThunder = weather?.current?.text?.includes('雷') || false; // 文字含"雷"
+      const isHeavyRain = [81, 82].includes(weatherCode);          // 暴雨
+      
+      if (isStorm || isThunder || isHeavyRain) {
+        // 有雷暴/暴雨！查询宠物的恐惧记忆
+        try {
+          const fearRes = await fetch('/api/memories?type=fear');
+          if (fearRes.ok) {
+            const { memories } = await fearRes.json();
+            if (memories && memories.length > 0) {
+              // 找到恐惧记忆 → 生成针对性推送
+              const petNames = [...new Set(memories.map((m: any) => m.pet_name).filter(Boolean))];
+              const fearContent = memories.map((m: any) => m.memory_content).join('；');
+              
+              await sendPWANotification(
+                '⛈️ 雷暴预警！你的毛孩子可能需要你',
+                `${petNames.join('、') || '宠物'}${fearContent}。气象台预警有雷暴/暴雨，请提前安抚宠物，趁没下雨先带它出去排便，回家后关好门窗放点轻音乐~ 🐾`
+              );
+              localStorage.setItem('lastWeatherNotification', today);
+              console.log(`[场景二-天气联动] 已推送恐惧记忆通知: ${petNames.join(', ')}`);
+              return; // 恐惧优先级最高，直接返回
+            }
+          }
+        } catch (e) {
+          console.log('[场景二] 查询恐惧记忆失败:', e);
+        }
+        
+        // 无恐惧记忆时走通用雷暴提醒
+        await sendPWANotification(
+          '⛈️ 雷暴预警！今天宅家陪主子~',
+          '打雷啦！毛孩子可能会害怕，在家玩点室内游戏安抚一下吧~ (｡•̀ᴗ-)✧'
+        );
+        localStorage.setItem('lastWeatherNotification', today);
+        return;
+      }
 
       // 调用 AI 天气建议 API 获取萌系提示
       let pushTitle = '';
@@ -360,13 +412,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
       // 如果 AI 没返回结果，走规则引擎
       if (!pushTitle) {
-        const isRainy = [51, 53, 55, 61, 63, 65, 80, 81, 82].includes(weatherCode);
-        const isStorm = [95, 96, 99].includes(weatherCode);
+        const isRainy = [51, 53, 55, 61, 63, 65, 80].includes(weatherCode);
 
-        if (isStorm) {
-          pushTitle = '⛈️ 雷暴预警！今天宅家陪主子~';
-          pushBody = '打雷啦！毛孩子可能会害怕，在家玩点室内游戏安抚一下吧~ (｡•̀ᴗ-)✧';
-        } else if (isRainy) {
+        if (isRainy) {
           pushTitle = '🌧️ 今天有雨，记得带伞哦';
           pushBody = '出门给毛孩子穿件雨衣吧！如果雨大的话就在家玩游戏也很好玩~ ☔';
         } else if (temp > 35) {
@@ -376,7 +424,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
           pushTitle = '❄️ 冷冷冷！抱紧你的小毛球';
           pushBody = '出门记得给毛孩子穿衣服保暖，选中午暖和的时候出去哦~ 🫶';
         } else {
-          // 普通天气也推一条轻量提示
           pushTitle = '☀️ 今日养宠小贴士';
           pushBody = `${temp}°C | 湿度${humidity}% | ${windSpeed}m/s风 — 点击查看详细护理建议~`;
         }
@@ -391,14 +438,57 @@ export function AppProvider({ children }: { children: ReactNode }) {
     } catch {}
   };
 
+  // 🆕 检查用药提醒 — 到时间自动发送 PWA 推送
+  const checkMedicationNotifications = useCallback(async () => {
+    if (typeof window === 'undefined') return;
+    try {
+      const res = await fetch('/api/medication-reminders?active=true');
+      if (!res.ok) return;
+      const reminders = await res.json();
+      if (!Array.isArray(reminders) || reminders.length === 0) return;
+
+      const now = new Date();
+      const today = now.toISOString().slice(0, 10);
+      // 读取今天已推送的提醒ID集合
+      const pushedKey = 'medPushedIds_' + today;
+      let pushedIds: string[] = [];
+      try { pushedIds = JSON.parse(localStorage.getItem(pushedKey) || '[]'); } catch {}
+
+      for (const r of reminders) {
+        if (r.status !== 'active' || pushedIds.includes(r.id)) continue;
+        const nextDose = new Date(r.next_dose_time);
+        // 到期或已过期5分钟内（避免漏推）
+        const diffMin = (now.getTime() - nextDose.getTime()) / (1000 * 60);
+        if (diffMin >= -2 && diffMin <= 5) {
+          await sendPWANotification(
+            `💊 该给宠物喂药啦！【${r.disease_name}】`,
+            `${r.medications?.join('、') || '按时服药'} · ${r.frequency}次/天 · 剩余${r.remaining_doses}次\n点击查看详情 →`,
+            { url: '/health', tag: `med-${r.id}-${today}` },
+          );
+          pushedIds.push(r.id);
+          console.log(`[AppContext] 🐾 用药PWA推送: ${r.disease_name}`);
+        }
+      }
+      localStorage.setItem(pushedKey, JSON.stringify(pushedIds));
+    } catch (e) {
+      console.error('[AppContext] 用药提醒检查失败:', e);
+    }
+  }, [sendPWANotification]);
+
   // 检查到期通知
   useEffect(() => {
     if (!state.isLoading && state.pets.length > 0) {
       checkDueNotifications();
       // 检查AI天气提醒（异步）
       checkWeatherNotifications();
+      // 🆕 检查用药提醒（异步PWA推送）
+      checkMedicationNotifications();
+
+      // 🆕 每分钟定时检查用药提醒
+      const medTimer = setInterval(checkMedicationNotifications, 60 * 1000);
+      return () => clearInterval(medTimer);
     }
-  }, [state.isLoading, state.pets.length]);
+  }, [state.isLoading, state.pets.length, checkDueNotifications, checkWeatherNotifications, checkMedicationNotifications]);
 
   // 自动生成宠物护理日程
   const generateSchedulesForPet = (pet: Pet) => {
@@ -580,6 +670,14 @@ export function AppProvider({ children }: { children: ReactNode }) {
   // 选择宠物
   const selectPet = (id: string | null) => {
     dispatch({ type: 'SELECT_PET', payload: id });
+    // 🆕 持久化选中状态
+    if (typeof window !== 'undefined') {
+      if (id) {
+        localStorage.setItem('selectedPetId', id);
+      } else {
+        localStorage.removeItem('selectedPetId');
+      }
+    }
   };
 
   // 完成日程 - 调用API更新数据库
@@ -727,10 +825,39 @@ export function AppProvider({ children }: { children: ReactNode }) {
 }
 
 // Hook
-export function useApp() {
+export function useApp(): AppContextType {
   const context = useContext(AppContext);
   if (!context) {
-    throw new Error('useApp must be used within AppProvider');
+    // SSR / 热更新边界兼容：返回默认值而非 throw 避免白屏
+    if (typeof window === 'undefined') {
+      return defaultContextValue;
+    }
+    console.error('[useApp] ⚠️ Context 为空，确认组件在 AppProvider 内部');
+    // 开发模式下仍然抛出便于排查，生产环境降级
+    if (process.env.NODE_ENV === 'development') {
+      throw new Error('useApp must be used within AppProvider');
+    }
+    return defaultContextValue;
   }
   return context;
 }
+
+// 默认上下文值（SSR/降级兜底）
+function createDefaultContextValue(): AppContextType {
+  const noop = (() => {}) as () => void;
+  const noopDispatch = (() => {}) as React.Dispatch<Action>;
+  return {
+    state: { pets: [] as Pet[], selectedPetId: null, careSchedules: [] as CareSchedule[], healthAnalyses: [] as HealthAnalysis[], notifications: [] as Notification[], parks: [] as ParkLocation[], weather: null, isLoading: true },
+    dispatch: noopDispatch,
+    selectedPet: null,
+    addPet: noop,
+    updatePet: noop,
+    deletePet: noop,
+    selectPet: noop,
+    completeSchedule: noop,
+    generateSchedulesForPet: noop,
+    addHealthAnalysis: noop,
+    checkDueNotifications: noop,
+  };
+}
+const defaultContextValue = createDefaultContextValue();

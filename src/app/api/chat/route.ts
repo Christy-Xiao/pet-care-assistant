@@ -9,7 +9,8 @@ import {
   getUserMemorySummary,
   generateSessionId,
   extractKeyMemories,
-  detectAndUpdatePetAllergy
+  detectAndUpdatePetAllergy,
+  extractMemoriesWithAI
 } from '@/lib/chatMemory';
 import { 
   getPublicIP, 
@@ -2347,8 +2348,17 @@ ${pets.length > 1 ? `目前有 ${petNames}，你想记录哪个的体重？` : '
       saveChatMemory(userId, currentSessionId, 'user', lastMessage);
       // 保存AI回复
       saveChatMemory(userId, currentSessionId, 'assistant', reply);
-      // 提取并保存关键记忆（传入宠物信息用于关联）
-      extractKeyMemories(userId, pets);
+      
+      // 【场景一核心】用 AI 提取长期记忆（替代正则匹配）
+      try {
+        const extracted = await extractMemoriesWithAI(userId, lastMessage, pets);
+        if (extracted.length > 0) {
+          console.log(`[长期记忆] AI 提取到 ${extracted.length} 条新记忆:`, extracted.map(m => `[${m.type}] ${m.content}`));
+        }
+      } catch (err) {
+        console.log('[长期记忆] AI提取失败，降级到正则');
+        extractKeyMemories(userId, pets);
+      }
     }
 
     return NextResponse.json({

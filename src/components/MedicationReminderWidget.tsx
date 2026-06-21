@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { Clock, Pill, Check, SkipForward } from 'lucide-react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { Clock, Pill, Check, SkipForward, Bell, BellOff, Smartphone, Loader2, Info } from 'lucide-react';
 import Link from 'next/link';
 
 interface TreatmentPlan {
@@ -31,6 +31,10 @@ export default function MedicationReminderWidget({ petId }: MedicationReminderWi
   const [reminders, setReminders] = useState<MedicationReminder[]>([]);
   const [loading, setLoading] = useState(true);
   const [timeLeft, setTimeLeft] = useState<string>('');
+
+  // 🆕 PWA 推送状态
+  const [pushStatus, setPushStatus] = useState<'unknown' | 'subscribed' | 'unsubscribed' | 'unsupported'>('unknown');
+  const [sendingPush, setSendingPush] = useState(false);
 
   // 加载用药提醒
   useEffect(() => {
@@ -68,6 +72,105 @@ export default function MedicationReminderWidget({ petId }: MedicationReminderWi
       window.removeEventListener('medicationReminderCreated', handleReminderCreated);
     };
   }, [petId]);
+
+  // 🆕 检测 PWA 推送订阅状态
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const checkPush = async () => {
+      try {
+        if (!('serviceWorker' in navigator) || !('Notification' in window)) {
+          setPushStatus('unsupported');
+          return;
+        }
+        const reg = await navigator.serviceWorker.getRegistration('/sw.js');
+        if (!reg) { setPushStatus('unsubscribed'); return; }
+        const sub = await reg.pushManager.getSubscription();
+        setPushStatus(sub ? 'subscribed' : 'unsubscribed');
+      } catch { setPushStatus('unsupported'); }
+    };
+    checkPush();
+  }, []);
+
+  // 🆕 订阅 PWA 推送
+  const handleSubscribe = useCallback(async () => {
+    try {
+      if ('serviceWorker' in navigator && 'Notification' in window) {
+        const perm = await Notification.requestPermission();
+        if (perm !== 'granted') {
+          alert('请允许接收通知权限，才能在后台收到用药提醒！');
+          return;
+        }
+        const reg = await navigator.serviceWorker.ready;
+        const existingSub = await reg.pushManager.getSubscription();
+        if (existingSub) {
+          setPushStatus('subscribed');
+          alert('✅ 已经订阅了推送通知！');
+          return;
+        }
+        // 获取 VAPID 公钥并订阅
+        const pk = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
+        if (!pk) {
+          alert('⚠️ 服务端未配置 VAPID 密钥，暂时无法订阅。');
+          return;
+        }
+        const padding = '='.repeat((4 - pk.length % 4) % 4);
+        const b64 = (pk + padding).replace(/-/g, '+').replace(/_/g, '/');
+        const raw = window.atob(b64);
+        const key = new Uint8Array(raw.length);
+        for (let i = 0; i < raw.length; i++) key[i] = raw.charCodeAt(i);
+        const sub = await reg.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: key,
+        });
+        await fetch('/api/push/subscribe', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            subscription: JSON.parse(JSON.stringify(sub)),
+            userId: localStorage.getItem('userId') || undefined,
+          }),
+        });
+        setPushStatus('subscribed');
+        alert('🎉 用药提醒推送订阅成功！到时间会自动收到系统通知~');
+      }
+    } catch (err: any) {
+      alert('订阅失败: ' + (err?.message || err));
+    }
+  }, []);
+
+  // 🆕 测试发送 PWA 推送（用药提醒）
+  const handleTestPush = useCallback(async () => {
+    if (reminders.length === 0) {
+      alert('暂无活跃的用药提醒，无法测试推送');
+      return;
+    }
+    setSendingPush(true);
+    try {
+      const r = reminders[0]!;
+      const res = await fetch('/api/push/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: `💊 该给宠物喂药啦！【${r.disease_name}】`,
+          body: `${r.medications.join('、')} · ${r.frequency}次/天 · 剩余${r.remaining_doses}次\n点击查看详情 →`,
+          icon: '/icons/icon-192x192.png',
+          url: '/health',
+          tag: `med-test-${Date.now()}`,
+          broadcast: true,
+        }),
+      });
+      const result = await res.json();
+      if (res.ok) {
+        alert(`📱 用药提醒推送已发送！(${result.sentCount || 0} 台设备)\n\n如果已开启推送权限，几秒后手机/电脑会收到系统通知！`);
+      } else {
+        alert(`推送失败: ${result.error}`);
+      }
+    } catch (err: any) {
+      alert(`推送异常: ${err?.message || err}`);
+    } finally {
+      setSendingPush(false);
+    }
+  }, [reminders]);
 
   // 计算倒计时
   useEffect(() => {
@@ -162,9 +265,28 @@ export default function MedicationReminderWidget({ petId }: MedicationReminderWi
   if (reminders.length === 0) {
     return (
       <div className="rounded-2xl bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-100 p-5">
-        <div className="flex items-center gap-2 mb-3">
-          <Clock className="w-5 h-5 text-blue-600" />
-          <h3 className="font-semibold text-blue-800">用药提醒</h3>
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-2">
+            <Clock className="w-5 h-5 text-blue-600" />
+            <h3 className="font-semibold text-blue-800">用药提醒</h3>
+          </div>
+          {/* 🆕 推送按钮组 */}
+          <div className="flex gap-1">
+            {pushStatus === 'unsubscribed' && (
+              <button
+                onClick={handleSubscribe}
+                className="px-2 py-1 rounded-md text-[10px] font-medium bg-blue-500 hover:bg-blue-600 text-white flex items-center gap-0.5 transition-colors shadow-sm"
+                title="开启后可在后台收到用药提醒推送"
+              >
+                <Bell className="w-3 h-3" /> 开启推送
+              </button>
+            )}
+            {pushStatus === 'subscribed' && (
+              <span className="px-2 py-1 rounded-md text-[10px] font-medium bg-green-100 text-green-600 flex items-center gap-0.5">
+                <Bell className="w-3 h-3" /> 已开启
+              </span>
+            )}
+          </div>
         </div>
         <p className="text-sm text-blue-600">暂无用药提醒</p>
         <Link 
@@ -383,6 +505,51 @@ export default function MedicationReminderWidget({ petId }: MedicationReminderWi
           </div>
         </div>
       )}
+
+      {/* 🆕 PWA 推送控制区 */}
+      <div className="mt-4 pt-3 border-t border-blue-100/50 flex items-center justify-between">
+        <div className="flex items-center gap-1.5 text-[10px] opacity-50">
+          <Info className="w-3 h-3" />
+          <span>
+            {pushStatus === 'subscribed'
+              ? '到时间会自动推送系统通知'
+              : pushStatus === 'unsupported'
+                ? '当前浏览器不支持推送'
+                : '开启「推送」可在后台收到用药提醒'
+            }
+          </span>
+        </div>
+        <div className="flex gap-1">
+          {pushStatus === 'unsubscribed' && (
+            <button
+              onClick={handleSubscribe}
+              className="px-2 py-1 rounded-md text-[10px] font-medium bg-blue-500 hover:bg-blue-600 text-white flex items-center gap-0.5 transition-colors shadow-sm"
+              title="订阅后到时间自动收到系统通知"
+            >
+              <Bell className="w-3 h-3" /> 开启
+            </button>
+          )}
+          {pushStatus === 'subscribed' && (
+            <>
+              <span className="px-2 py-1 rounded-md text-[10px] font-medium bg-green-100 text-green-600 flex items-center gap-0.5">
+                <Bell className="w-3 h-3" /> 已开启
+              </span>
+              <button
+                onClick={handleTestPush}
+                disabled={sendingPush}
+                className="px-2 py-1 rounded-md text-[10px] font-medium bg-sky-500 hover:bg-sky-600 text-white flex items-center gap-0.5 transition-colors shadow-sm disabled:opacity-50"
+                title="模拟发送一条用药提醒系统通知"
+              >
+                {sendingPush
+                  ? <Loader2 className="w-3 h-3 animate-spin" />
+                  : <Smartphone className="w-3 h-3" />
+                }
+                测试推送
+              </button>
+            </>
+          )}
+        </div>
+      </div>
     </div>
   );
 }

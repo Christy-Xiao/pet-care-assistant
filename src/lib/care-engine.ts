@@ -357,12 +357,10 @@ export function generateWeeklyReport(data: {
     } else if (Math.abs(weightChangePercent) <= 3) {
       report += `   📌 体重变化略大，注意观察。\n`;
     }
-  } else if (Math.abs(weightChange) > 0.5) {
-    if (weightChange > 0) {
-      report += `   体重略有上升，建议适当控制饮食～\n`;
-    } else {
-      report += `   体重略有下降，注意补充营养～\n`;
-    }
+  } else if (weightChange !== 0 && Math.abs(weightChange) > 0.01) {
+    // 有变化量但百分比可能为0（整数kg情况）
+    const changeStr = weightChange > 0 ? `+${weightChange.toFixed(2)}kg` : `${weightChange.toFixed(2)}kg`;
+    report += `   体重${weightChange > 0 ? '上升' : '下降'}了 ${changeStr}\n`;
   } else {
     report += `   暂无体重对比数据，请记录更多体重数据～\n`;
   }

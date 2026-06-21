@@ -149,7 +149,7 @@ export default function WeeklyReportPage() {
         console.log('📊 目标周体重记录:', targetWeekWeight, '前一周体重记录:', prevWeekWeight);
         
         if (targetWeekWeight.length > 0 && prevWeekWeight.length > 0) {
-          // 目标周和前一周都有数据，计算变化
+          // 目标周和前一周都有数据，取各自最新的一条做对比
           displayWeight = parseFloat(targetWeekWeight[0]!.weight);
           const previousWeight = parseFloat(prevWeekWeight[0]!.weight);
           
@@ -170,10 +170,61 @@ export default function WeeklyReportPage() {
               weightAlert = '✅ 体重变化正常，继续保持！';
             }
           }
-        } else if (targetWeekWeight.length > 0) {
-          // 只有目标周有体重记录
+        } else if (targetWeekWeight.length >= 2) {
+          // 目标周内有>=2条记录，用本周首末对比
+          const sortedAsc = [...targetWeekWeight].sort((a: any, b: any) =>
+            new Date(a.recorded_at || a.created_at).getTime() -
+            new Date(b.recorded_at || b.created_at).getTime()
+          );
+          const firstWeight = parseFloat(sortedAsc[0]!.weight);  // 该周最早
+          const lastWeight = parseFloat(sortedAsc[sortedAsc.length - 1]!.weight); // 该周最晚
+          displayWeight = lastWeight;  // 显示该周最后记录的体重
+          
+          if (firstWeight > 0) {
+            weightChange = lastWeight - firstWeight;
+            weightChangePercent = Math.round((weightChange / firstWeight) * 1000) / 10;
+            
+            if (Math.abs(weightChangePercent) > 3) {
+              weightAlert = weightChange < 0 
+                ? '⚠️ 该周体重下降较快，建议关注健康状况！' 
+                : '⚠️ 该周体重增长较快，建议适当控制饮食！';
+            } else if (Math.abs(weightChangePercent) > 2) {
+              weightAlert = '📌 该周体重有波动，建议持续观察。';
+            } else {
+              weightAlert = '✅ 该周体重变化平稳。';
+            }
+          }
+        } else if (targetWeekWeight.length === 1) {
+          // 目标周只有1条记录，找更早的历史数据做对比
           displayWeight = parseFloat(targetWeekWeight[0]!.weight);
-          weightAlert = '📊 已有该周体重记录，继续监测变化。';
+          const earlierRecords = weightData.filter((r: any) => {
+            const dateStr = r.recorded_at || r.created_at;
+            const date = new Date(dateStr);
+            return date < targetWeekStart;
+          }).sort((a: any, b: any) => 
+            new Date(b.recorded_at || b.created_at).getTime() - 
+            new Date(a.recorded_at || a.created_at).getTime()
+          );
+          
+          if (earlierRecords.length > 0) {
+            const historicalWeight = parseFloat(earlierRecords[0]!.weight);
+            if (historicalWeight > 0) {
+              weightChange = displayWeight - historicalWeight;
+              weightChangePercent = Math.round((weightChange / historicalWeight) * 1000) / 10;
+              
+              if (Math.abs(weightChangePercent) > 3) {
+                weightAlert = weightChange < 0
+                  ? '⚠️ 与历史记录相比体重下降明显，请关注！'
+                  : '⚠️ 与历史记录相比体重增长明显，请注意！';
+              } else if (Math.abs(weightChangePercent) > 0) {
+                weightAlert = '📊 已有体重记录可供对比参考。';
+              } else {
+                weightAlert = '✅ 体重与近期记录持平。';
+              }
+            }
+          } else {
+            weightAlert = '📊 已有该周体重记录，继续监测变化。';
+          }
         } else if (weightData.length > 0) {
           // 有历史体重记录但不在目标周 - 显示最近一条记录
           displayWeight = parseFloat(weightData[0]!.weight);
