@@ -123,7 +123,7 @@ export default function VoiceAssistantButton({ showFab = true, onActionComplete 
     <>
       {/* ====== 浮动麦克风按钮 ====== */}
       {showFab && (
-        <div className="fixed bottom-[88px] right-5 z-50 flex flex-col items-center gap-2">
+        <div className="absolute bottom-[88px] right-5 z-50 flex flex-col items-center gap-2">
           {/* 状态文字 */}
           {(state === 'recording' || state === 'transcribing' || state === 'extracting' || state === 'executing') && (
             <div className={`px-3 py-1.5 rounded-full text-xs font-medium shadow-lg ${

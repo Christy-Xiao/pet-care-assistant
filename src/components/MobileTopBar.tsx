@@ -11,7 +11,7 @@ export default function MobileTopBar() {
   const unreadCount = state.notifications.filter((n) => !n.read).length;
 
   return (
-    <header className="fixed top-0 left-0 right-0 z-50 pt-safe">
+    <header className="absolute top-0 left-0 right-0 z-50 pt-safe">
       {/* 主顶栏 */}
       <div className="h-12 px-4 flex items-center justify-between bg-white/90 backdrop-blur-lg border-b border-orange-100/60">
         {/* 左侧：Logo + 宠物选择 */}

@@ -44,7 +44,7 @@ export default function PWAInstallButton() {
   if (!showBanner) return null;
 
   return (
-    <div className="fixed bottom-20 left-4 right-4 z-50 md:hidden">
+    <div className="absolute bottom-20 left-4 right-4 z-50 md:hidden">
       <div className="max-w-md mx-auto bg-white/95 backdrop-blur-xl rounded-2xl shadow-xl border border-primary-100 p-3.5 flex items-center gap-3 animate-fadeIn">
         {/* 图标 */}
         <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary-400 to-accent-400 flex items-center justify-center flex-shrink-0 shadow-sm shadow-primary-200/50">
