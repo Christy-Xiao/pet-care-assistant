@@ -403,7 +403,7 @@ export function useVoiceAssistant() {
     if (data.status === 'abnormal' || (data.severity && data.severity !== 'normal')) {
       const notification = {
         id: `notif_${Date.now()}`,
-        petId,
+        petId: petId || '',
         petName: petName || '未知宠物',
         title: '健康异常提醒',
         message: `${petName || '宠物'} ${data.notes || data.symptoms?.join('、') || '有健康异常，请关注'}`,
