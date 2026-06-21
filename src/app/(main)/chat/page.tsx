@@ -3819,7 +3819,7 @@ ${generateCareMessage(undefined)}
     <div className="h-full flex flex-col">
         {/* Data indicator */}
         {hasPets && (
-          <div className="shrink-0 bg-emerald-500/10 border-b border-emerald-500/20 px-4 py-2 flex items-center gap-2 text-xs text-emerald-400">
+          <div className="shrink-0 bg-emerald-50 border-b border-emerald-100 px-4 py-2 flex items-center gap-2 text-xs text-emerald-600">
             <Database className="w-3.5 h-3.5" />
             <span>已同步宠物档案 · 长期记忆已启用</span>
           </div>
@@ -3854,15 +3854,15 @@ ${generateCareMessage(undefined)}
                   <div className="flex flex-col gap-1">
                     <div className={`rounded-2xl px-4 py-3 ${
                       message.role === 'user'
-                        ? 'bg-gradient-to-br from-primary-500 to-accent-500 text-white rounded-tr-sm'
-                        : 'bg-white/10 backdrop-blur-sm border border-white/10 text-white/90 rounded-tl-sm'
+                        ? 'bg-gradient-to-br from-primary-400 to-accent-500 text-white rounded-tr-sm'
+                        : 'bg-white border border-gray-100 text-gray-800 shadow-sm rounded-tl-sm'
                     }`}>
                       <p className="whitespace-pre-wrap leading-relaxed">{message.content}</p>
                     </div>
 
                     {/* Context indicator */}
                     {message.role === 'assistant' && message.contextUsed && (
-                      <div className="flex items-center gap-1.5 text-xs text-primary-300 bg-primary-500/10 px-2 py-1 rounded-full w-fit">
+                      <div className="flex items-center gap-1.5 text-xs text-primary-600 bg-primary-50 px-2 py-1 rounded-full w-fit">
                         <Info className="w-3 h-3" />
                         <span>已读取宠物档案</span>
                       </div>
@@ -3889,11 +3889,11 @@ ${generateCareMessage(undefined)}
                 <div className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center">
                   <Bot className="w-4 h-4 text-white" />
                 </div>
-                <div className="bg-white/10 backdrop-blur-sm border border-white/10 rounded-2xl rounded-tl-sm px-4 py-3">
-                  <div className="flex items-center gap-2 text-white/60">
+                <div className="bg-white border border-gray-100 rounded-2xl rounded-tl-sm px-4 py-3 shadow-sm">
+                  <div className="flex items-center gap-2 text-gray-500">
                     <Loader2 className="w-4 h-4 animate-spin" />
                     <span>正在思考...</span>
-                    <Sparkles className="w-4 h-4 text-purple-500 animate-pulse" />
+                    <Sparkles className="w-4 h-4 text-primary-400 animate-pulse" />
                   </div>
                 </div>
               </div>
@@ -4064,13 +4064,13 @@ ${generateCareMessage(undefined)}
         {/* Quick Questions */}
         {showQuickActions && (
           <div className="px-4 pb-2">
-            <p className="text-xs text-white/40 mb-2">快捷问题：</p>
+            <p className="text-xs text-gray-400 mb-2">快捷问题：</p>
             <div className="flex flex-wrap gap-2">
               {quickQuestions.map((q, i) => (
                 <button
                   key={i}
                   onClick={() => handleQuickQuestion(q.text)}
-                  className="text-sm px-3 py-1.5 bg-white/8 border border-white/15 rounded-full text-white/70 hover:bg-white/15 hover:border-white/25 transition-colors"
+                  className="text-sm px-3 py-1.5 bg-gray-50 border border-gray-200 rounded-full text-gray-600 hover:bg-gray-100 hover:border-gray-300 transition-colors active:scale-95"
                 >
                   {q.icon} {q.text}
                 </button>
@@ -4078,53 +4078,53 @@ ${generateCareMessage(undefined)}
             </div>
             
             {/* 快捷操作按钮 */}
-            <p className="text-xs text-white/40 mb-2 mt-4">快捷操作：</p>
+            <p className="text-xs text-gray-400 mb-2 mt-4">快捷操作：</p>
             <div className="flex flex-wrap gap-2">
               <button
                 onClick={() => handleQuickAction('addPet')}
-                className="flex items-center gap-2 text-sm px-3 py-2 bg-primary-500/15 border border-primary-500/25 rounded-xl text-primary-300 hover:bg-primary-500/25 transition-colors"
+                className="flex items-center gap-2 text-sm px-3 py-2 bg-primary-50 border border-primary-200 rounded-xl text-primary-600 hover:bg-primary-100 transition-colors active:scale-95"
               >
                 <PawPrint className="w-4 h-4" />
                 添加宠物
               </button>
               <button
                 onClick={() => handleQuickAction('recordWeight')}
-                className="flex items-center gap-2 text-sm px-3 py-2 bg-emerald-500/15 border border-emerald-500/25 rounded-xl text-emerald-300 hover:bg-emerald-500/25 transition-colors"
+                className="flex items-center gap-2 text-sm px-3 py-2 bg-emerald-50 border border-emerald-200 rounded-xl text-emerald-600 hover:bg-emerald-100 transition-colors active:scale-95"
               >
                 <Scale className="w-4 h-4" />
                 记录体重
               </button>
               <button
                 onClick={() => handleQuickAction('healthAnalysis')}
-                className="flex items-center gap-2 text-sm px-3 py-2 bg-red-500/15 border border-red-500/25 rounded-xl text-red-300 hover:bg-red-500/25 transition-colors"
+                className="flex items-center gap-2 text-sm px-3 py-2 bg-red-50 border border-red-200 rounded-xl text-red-600 hover:bg-red-100 transition-colors active:scale-95"
               >
                 <Camera className="w-4 h-4" />
                 健康分析
               </button>
               <button
                 onClick={() => handleQuickAction('createSchedule')}
-                className="flex items-center gap-2 text-sm px-3 py-2 bg-amber-500/15 border border-amber-500/25 rounded-xl text-amber-300 hover:bg-amber-500/25 transition-colors"
+                className="flex items-center gap-2 text-sm px-3 py-2 bg-amber-50 border border-amber-200 rounded-xl text-amber-600 hover:bg-amber-100 transition-colors active:scale-95"
               >
                 <Calendar className="w-4 h-4" />
                 安排日程
               </button>
               <button
                 onClick={() => handleQuickAction('medicationReminder')}
-                className="flex items-center gap-2 text-sm px-3 py-2 bg-purple-500/15 border border-purple-500/25 rounded-xl text-purple-300 hover:bg-purple-500/25 transition-colors"
+                className="flex items-center gap-2 text-sm px-3 py-2 bg-purple-50 border border-purple-200 rounded-xl text-purple-600 hover:bg-purple-100 transition-colors active:scale-95"
               >
                 <Bell className="w-4 h-4" />
                 用药提醒
               </button>
               <button
                 onClick={() => handleQuickAction('healthTest')}
-                className="flex items-center gap-2 text-sm px-3 py-2 bg-teal-500/15 border border-teal-500/25 rounded-xl text-teal-300 hover:bg-teal-500/25 transition-colors"
+                className="flex items-center gap-2 text-sm px-3 py-2 bg-teal-50 border border-teal-200 rounded-xl text-teal-600 hover:bg-teal-100 transition-colors active:scale-95"
               >
                 <HeartPulse className="w-4 h-4" />
                 健康自测
               </button>
               <button
                 onClick={() => handleQuickAction('viewSchedule')}
-                className="flex items-center gap-2 text-sm px-3 py-2 bg-orange-500/15 border border-orange-500/25 rounded-xl text-orange-300 hover:bg-orange-500/25 transition-colors"
+                className="flex items-center gap-2 text-sm px-3 py-2 bg-orange-50 border border-orange-200 rounded-xl text-orange-600 hover:bg-orange-100 transition-colors active:scale-95"
               >
                 <Calendar className="w-4 h-4" />
                 查看日程
@@ -4136,15 +4136,15 @@ ${generateCareMessage(undefined)}
         {/* 图片上传区域 */}
         {showImageUpload && (
           <div className="px-4 pb-2">
-            <div className="bg-white/5 border border-white/10 rounded-2xl p-4">
+            <div className="bg-white border border-gray-200 rounded-2xl p-4 shadow-sm">
               <div className="flex items-center justify-between mb-3">
-                <p className="text-sm text-primary-300 font-medium flex items-center gap-2">
+                <p className="text-sm text-primary-600 font-medium flex items-center gap-2">
                   <Camera className="w-4 h-4" />
                   {healthAnalysisTarget ? `为 ${healthAnalysisTarget} 上传照片` : '上传照片进行分析'}
                 </p>
                 <button 
                   onClick={() => { setShowImageUpload(false); setUploadedImage(null); }}
-                  className="text-white/40 hover:text-white/70"
+                  className="text-gray-400 hover:text-gray-600"
                 >
                   <X className="w-4 h-4" />
                 </button>
@@ -4159,7 +4159,7 @@ ${generateCareMessage(undefined)}
                   />
                   <button
                     onClick={() => setUploadedImage(null)}
-                    className="absolute top-2 right-2 p-1 bg-white/20 rounded-full shadow"
+                    className="absolute top-2 right-2 p-1 bg-black/20 rounded-full shadow"
                   >
                     <X className="w-4 h-4 text-white/80" />
                   </button>
@@ -4167,11 +4167,11 @@ ${generateCareMessage(undefined)}
               ) : (
                 <div 
                   onClick={() => fileInputRef.current?.click()}
-                  className="border-2 border-dashed border-white/15 rounded-xl p-8 text-center cursor-pointer hover:border-white/25 hover:bg-white/5 transition-colors"
+                  className="border-2 border-dashed border-gray-200 rounded-xl p-8 text-center cursor-pointer hover:border-gray-300 hover:bg-gray-50 transition-colors"
                 >
-                  <Image className="w-8 h-8 text-primary-400/50 mx-auto mb-2" />
-                  <p className="text-sm text-white/50">点击上传图片</p>
-                  <p className="text-xs text-white/30 mt-1">支持 JPG、PNG 格式</p>
+                  <Image className="w-8 h-8 text-primary-300 mx-auto mb-2" />
+                  <p className="text-sm text-gray-500">点击上传图片</p>
+                  <p className="text-xs text-gray-400 mt-1">支持 JPG、PNG 格式</p>
                 </div>
               )}
               
@@ -4190,12 +4190,12 @@ ${generateCareMessage(undefined)}
                     value={input}
                     onChange={(e) => setInput(e.target.value)}
                     placeholder="描述一下照片内容（可选）..."
-                    className="flex-1 px-3 py-2 text-sm rounded-lg border border-white/15 bg-white/8 text-white placeholder-white/30 focus:border-primary-400/50 focus:bg-white/10 focus:outline-none"
+                    className="flex-1 px-3 py-2 text-sm rounded-lg border border-gray-200 bg-white text-gray-800 placeholder-gray-400 focus:border-primary-400 focus:outline-none"
                   />
                   <button
                     onClick={handleSendWithImage}
                     disabled={isLoading}
-                    className="px-4 py-2 bg-primary-500 text-white rounded-lg text-sm font-medium hover:bg-primary-600 disabled:opacity-50 transition-colors"
+                    className="px-4 py-2 bg-primary-500 text-white rounded-lg text-sm font-medium hover:bg-primary-600 disabled:opacity-50 transition-colors active:scale-95"
                   >
                     发送
                   </button>
@@ -4206,7 +4206,7 @@ ${generateCareMessage(undefined)}
         )}
 
         {/* Input */}
-        <div className="shrink-0 p-4 bg-stone-900/80 backdrop-blur-sm border-t border-white/8">
+        <div className="shrink-0 p-4 bg-white/90 backdrop-blur-sm border-t border-gray-100">
           <div className="flex items-center gap-2.5">
             {/* 麦克风按钮 */}
             {isRecording ? (
@@ -4215,7 +4215,7 @@ ${generateCareMessage(undefined)}
                 onMouseUp={stopRecording}
                 onTouchEnd={stopRecording}
                 onMouseLeave={stopRecording}
-                className="relative p-2.5 rounded-full bg-red-500/90 text-white shadow-lg shadow-red-500/20"
+                className="relative p-2.5 rounded-full bg-red-500 text-white shadow-lg shadow-red-500/20"
                 title="松开结束录音"
               >
                 <span className="absolute inset-0 rounded-full bg-red-400 animate-ping opacity-40" />
@@ -4228,8 +4228,8 @@ ${generateCareMessage(undefined)}
                 disabled={isLoading || isProcessingVoice}
                 className={`p-2.5 rounded-full transition-all ${
                   isProcessingVoice 
-                    ? 'bg-primary-400/20 text-primary-300' 
-                    : 'bg-white/10 text-white/60 hover:bg-white/15 hover:text-white/80 active:scale-95'
+                    ? 'bg-primary-100 text-primary-500' 
+                    : 'bg-gray-100 text-gray-500 hover:bg-gray-200 hover:text-gray-700 active:scale-95'
                 } disabled:opacity-50 disabled:cursor-not-allowed`}
                 title="按住说话"
               >
@@ -4246,8 +4246,8 @@ ${generateCareMessage(undefined)}
               onClick={() => setShowImageUpload(!showImageUpload)}
               className={`p-2.5 rounded-full transition-colors ${
                 showImageUpload 
-                  ? 'bg-primary-400/20 text-primary-300' 
-                  : 'bg-white/8 text-white/40 hover:bg-white/15 hover:text-white/60'
+                  ? 'bg-primary-100 text-primary-500' 
+                  : 'bg-gray-100 text-gray-400 hover:bg-gray-200 hover:text-gray-600'
               }`}
               title="上传图片"
             >
@@ -4261,8 +4261,8 @@ ${generateCareMessage(undefined)}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && handleSend()}
               placeholder={isRecording ? "🎤 正在录音，松开发送..." : isProcessingVoice ? "正在识别语音..." : "输入你的问题或下达指令..."}
-              className={`flex-1 px-4 py-2.5 rounded-full bg-white/8 border border-transparent text-white text-sm placeholder-white/30 focus:border-primary-400/30 focus:bg-white/12 focus:outline-none transition-all ${
-                isRecording ? 'border-red-400/30 bg-red-500/10 animate-pulse' : ''
+              className={`flex-1 px-4 py-2.5 rounded-full bg-gray-50 border border-transparent text-gray-800 text-sm placeholder-gray-400 focus:border-primary-300 focus:bg-white focus:outline-none transition-all ${
+                isRecording ? 'border-red-300 bg-red-50 animate-pulse' : ''
               }`}
               disabled={isLoading || isRecording}
             />
