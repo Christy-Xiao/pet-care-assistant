@@ -69,7 +69,7 @@ export function useNotifications() {
           reg = existingReg;
         } else {
           reg = await navigator.serviceWorker.register('/sw.js', { scope: '/' });
-          await reg.installing?.ready || Promise.resolve();
+          await reg.ready || Promise.resolve();
         }
 
         registrationRef.current = reg;
