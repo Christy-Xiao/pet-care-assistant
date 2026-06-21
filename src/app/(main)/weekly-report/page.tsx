@@ -10,6 +10,7 @@ interface WeeklyStats {
   exerciseDays: number;
   totalExercise: number;
   exerciseTrend: number;
+  totalDistance?: number; // 总距离(km)
   weightChange: number;
   weightChangePercent: number;
   weightAlert: string;
@@ -71,21 +72,22 @@ export default function WeeklyReportPage() {
         prevWeekStart.setDate(targetWeekStart.getDate() - 7);
         const prevWeekEnd = new Date(targetWeekStart);
 
-        // 筛选目标周的运动记录
+        // 筛选目标周的运动记录（pet_exercises 表用 exercise_date 字段）
         const thisWeekExercise = exerciseData.filter((r: any) => {
-          const date = new Date(r.date || r.created_at);
+          const date = new Date(r.exercise_date || r.date || r.created_at);
           return date >= targetWeekStart && date < targetWeekEnd;
         });
 
         // 筛选上一周的运动记录（用于计算趋势）
         const lastWeekExercise = exerciseData.filter((r: any) => {
-          const date = new Date(r.date || r.created_at);
+          const date = new Date(r.exercise_date || r.date || r.created_at);
           return date >= prevWeekStart && date < prevWeekEnd;
         });
 
-        // 计算本周运动量（分钟）
-        const thisWeekTotal = thisWeekExercise.reduce((sum: number, r: any) => sum + (parseFloat(r.duration) || 0), 0);
-        const lastWeekTotal = lastWeekExercise.reduce((sum: number, r: any) => sum + (parseFloat(r.duration) || 0), 0);
+        // 计算本周运动量（分钟 + 距离）
+        const thisWeekTotal = thisWeekExercise.reduce((sum: number, r: any) => sum + (Number(r.duration_min || r.duration) || 0), 0);
+        const lastWeekTotal = lastWeekExercise.reduce((sum: number, r: any) => sum + (Number(r.duration_min || r.duration) || 0), 0);
+        const thisWeekDistance = thisWeekExercise.reduce((sum: number, r: any) => sum + (Number(r.distance_km) || 0), 0);
 
         // 计算运动趋势
         let exerciseTrend = 0;
@@ -242,6 +244,7 @@ export default function WeeklyReportPage() {
         setStats({
           exerciseDays: thisWeekExercise.length,
           totalExercise: Math.round(thisWeekTotal),
+          totalDistance: Math.round(thisWeekDistance * 10) / 10,
           exerciseTrend,
           weightChange,
           weightChangePercent,
@@ -417,6 +420,9 @@ export default function WeeklyReportPage() {
                 <div>
                   <p className="text-sm text-gray-500">总运动量</p>
                   <p className="text-2xl font-bold text-gray-800">{stats.totalExercise} 分钟</p>
+                  {stats.totalDistance && stats.totalDistance > 0 && (
+                    <p className="text-xs text-emerald-600 font-medium">累计 {stats.totalDistance} km</p>
+                  )}
                 </div>
               </div>
             </div>

@@ -319,8 +319,9 @@ export function generateDailyBriefing(weatherInfo?: { code: string; temp?: numbe
 export function generateWeeklyReport(data: {
   petName: string;
   exerciseDays: number;
-  totalExercise: number;
+  totalExercise: number; // 总时长(分钟)
   exerciseTrend: number; // 百分比，正数表示增加
+  totalDistance?: number; // 总距离(km)
   weightChange: number; // 体重变化（kg），正数表示增加
   weightChangePercent?: number; // 体重变化百分比
   weightAlert?: string; // 体重警告信息
@@ -328,7 +329,7 @@ export function generateWeeklyReport(data: {
   healthRecordsCount: number;
   analysisCount: number;
 }): string {
-  const { petName, exerciseDays, totalExercise, exerciseTrend, weightChange, weightChangePercent = 0, weightAlert, medicationsCount, healthRecordsCount, analysisCount } = data;
+  const { petName, exerciseDays, totalExercise, exerciseTrend, weightChange, weightChangePercent = 0, weightAlert, medicationsCount, healthRecordsCount, analysisCount, totalDistance } = data;
   
   const trendEmoji = exerciseTrend > 0 ? '📈' : exerciseTrend < 0 ? '📉' : '➡️';
   const trendText = exerciseTrend > 0 ? '比上周增加' : exerciseTrend < 0 ? '比上周减少' : '与上周持平';
@@ -338,8 +339,11 @@ export function generateWeeklyReport(data: {
   
   // 运动数据
   report += `🏃 运动情况\n`;
-  report += `   本周运动 ${exerciseDays} 天，共 ${totalExercise} 公里\n`;
-  report += `   ${trendEmoji} ${trendText} ${Math.abs(exerciseTrend)}%\n\n`;
+  report += `   本周运动 ${exerciseDays} 天，共 ${totalExercise} 分钟`;
+  if (totalDistance && totalDistance > 0) {
+    report += `，累计 ${(totalDistance).toFixed(1)} 公里`;
+  }
+  report += `\n   ${trendEmoji} ${trendText} ${Math.abs(exerciseTrend)}%\n\n`;
   
   // 体重数据
   report += `⚖️ 体重变化\n`;
