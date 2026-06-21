@@ -821,25 +821,83 @@ function getUserData() {
   }
 }
 
-// 从localStorage读取所有对话
-function getConversations(): Conversation[] {
+// 从 localStorage 读取所有对话（离线缓存/快速加载）
+function getLocalConversations(): Conversation[] {
   try {
     const data = localStorage.getItem('chatConversations');
     if (data) {
       const conversations = JSON.parse(data);
-      // 转换日期字符串回 Date 对象
       return conversations.map((c: any) => ({
         ...c,
-        updatedAt: new Date(c.updatedAt)
+        updatedAt: new Date(c.updatedAt),
+        messages: (c.messages || []).map((m: any) => ({
+          ...m,
+          timestamp: new Date(m.timestamp),
+        })),
       }));
     }
   } catch {}
   return [];
 }
 
-// 保存所有对话到localStorage
-function saveConversations(conversations: Conversation[]) {
+// 从 localStorage 读取所有对话（兼容旧调用）
+function getConversations(): Conversation[] {
+  return getLocalConversations();
+}
+
+// 保存所有对话到 localStorage（本地缓存）
+function saveConversationsToLocalStorage(conversations: Conversation[]) {
   localStorage.setItem('chatConversations', JSON.stringify(conversations));
+}
+
+// 保存所有对话到 localStorage + 异步同步服务器
+async function saveConversations(conversations: Conversation[]) {
+  // 先存本地（快速，不阻塞）
+  saveConversationsToLocalStorage(conversations);
+  
+  // 异步同步到服务器（不阻塞 UI）
+  const storedUser = localStorage.getItem('user');
+  if (!storedUser) return;
+  
+  try {
+    let user;
+    try { user = JSON.parse(storedUser); } catch { return; }
+    if (!user?.id) return;
+    
+    // 只同步当前活跃的对话（最近更新的那个）
+    for (const conv of conversations) {
+      fetch('/api/conversations', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: user.id,
+          conversationId: conv.id,
+          title: conv.title,
+          messages: conv.messages,
+        }),
+      }).catch(() => {}); // 静默失败，不影响体验
+    }
+  } catch {
+    // 静默失败
+  }
+}
+
+// 从服务器加载用户的对话历史
+async function loadConversationsFromServer(userId: string): Promise<Conversation[] | null> {
+  try {
+    const res = await fetch(`/api/conversations?userId=${encodeURIComponent(userId)}`);
+    if (!res.ok) return null;
+    
+    const data = await res.json();
+    if (data.conversations && data.conversations.length > 0) {
+      // 同时更新本地缓存
+      saveConversationsToLocalStorage(data.conversations);
+      return data.conversations;
+    }
+    return null;
+  } catch {
+    return null;
+  }
 }
 
 // 生成默认欢迎消息
@@ -2617,7 +2675,7 @@ export default function ChatPage() {
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
-  // 加载对话历史
+  // 加载对话历史（优先从服务器同步）
   useEffect(() => {
     const { pets: userPets, schedules } = getUserData();
     setHasPets(userPets.length > 0);
@@ -2629,28 +2687,69 @@ export default function ChatPage() {
       try {
         const user = JSON.parse(storedUser);
         setUserId(user.id);
+        
+        // 优先从服务器加载对话
+        loadConversationsFromServer(user.id).then(serverConversations => {
+          if (serverConversations && serverConversations.length > 0) {
+            // 服务器有数据，使用服务器的
+            setConversations(serverConversations);
+            setCurrentConversationId(serverConversations[0].id);
+          } else {
+            // 服务器没有数据，用本地缓存的或创建新对话
+            const localConvs = getLocalConversations();
+            if (localConvs.length > 0) {
+              setConversations(localConvs);
+              setCurrentConversationId(localConvs[0].id);
+              // 把本地数据也同步到服务器（首次迁移）
+              for (const conv of localConvs) {
+                fetch('/api/conversations', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    userId: user.id,
+                    conversationId: conv.id,
+                    title: conv.title,
+                    messages: conv.messages,
+                  }),
+                }).catch(() => {});
+              }
+            } else {
+              const now = new Date();
+              const threeDaysLater = new Date(now.getTime() + 3 * 24 * 60 * 60 * 1000);
+              const urgentSchedules = (schedules || []).filter((s: any) => {
+                if (s.status === 'completed') return false;
+                const dueDate = new Date(s.dueDate);
+                return dueDate >= now && dueDate <= threeDaysLater;
+              });
+              const petNames = pets.map((p: any) => p.name).join('、');
+              
+              const newConv = createNewConversation(pets.length > 0, petNames, urgentSchedules);
+              setConversations([newConv]);
+              setCurrentConversationId(newConv.id);
+            }
+          }
+        });
       } catch {}
-    }
-    
-    // 加载对话历史
-    const savedConversations = getConversations();
-    if (savedConversations.length > 0) {
-      setConversations(savedConversations);
-      setCurrentConversationId(savedConversations[0].id);
     } else {
-      // 创建第一个对话
-      const now = new Date();
-      const threeDaysLater = new Date(now.getTime() + 3 * 24 * 60 * 60 * 1000);
-      const urgentSchedules = (schedules || []).filter((s: any) => {
-        if (s.status === 'completed') return false;
-        const dueDate = new Date(s.dueDate);
-        return dueDate >= now && dueDate <= threeDaysLater;
-      });
-      const petNames = pets.map((p: any) => p.name).join('、');
-      
-      const newConv = createNewConversation(pets.length > 0, petNames, urgentSchedules);
-      setConversations([newConv]);
-      setCurrentConversationId(newConv.id);
+      // 没有登录用户，用本地缓存兜底
+      const savedConversations = getLocalConversations();
+      if (savedConversations.length > 0) {
+        setConversations(savedConversations);
+        setCurrentConversationId(savedConversations[0].id);
+      } else {
+        const now = new Date();
+        const threeDaysLater = new Date(now.getTime() + 3 * 24 * 60 * 60 * 1000);
+        const urgentSchedules = (schedules || []).filter((s: any) => {
+          if (s.status === 'completed') return false;
+          const dueDate = new Date(s.dueDate);
+          return dueDate >= now && dueDate <= threeDaysLater;
+        });
+        const petNames = pets.map((p: any) => p.name).join('、');
+        
+        const newConv = createNewConversation(pets.length > 0, petNames, urgentSchedules);
+        setConversations([newConv]);
+        setCurrentConversationId(newConv.id);
+      }
     }
   }, []);
 
