@@ -253,16 +253,16 @@ export default function WeatherNotificationPopup() {
                   {tips.summary}
                 </p>
                 {/* 遛狗快捷条 */}
-                <div className={`mt-2 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${
+                <div className={`mt-2 flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium whitespace-nowrap max-w-fit ${
                   tips.walkAdvice.suitable ? 'bg-white/60' : 'bg-white/40'
                 }`}>
                   {tips.walkAdvice.suitable
-                    ? <><Dog className="w-3 h-3" /> 适合遛弯</>
-                    : <><Home className="w-3 h-3" /> 不宜外出</>
+                    ? <><Dog className="w-3 h-3 shrink-0" /><span>适合遛弯</span></>
+                    : <><Home className="w-3 h-3 shrink-0" /><span>不宜外出</span></>
                   }
-                  <span className="opacity-70">·</span>
-                  <Clock className="w-3 h-3" />
-                  {tips.walkAdvice.duration}
+                  <span className="opacity-70 shrink-0">·</span>
+                  <Clock className="w-3 h-3 shrink-0" />
+                  <span>{tips.walkAdvice.duration}</span>
                 </div>
               </>
             ) : (
