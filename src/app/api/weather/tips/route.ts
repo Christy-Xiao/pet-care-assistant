@@ -274,7 +274,7 @@ function generateFallbackTips(temp: number, weatherCode: number): WeatherTipsRes
     title: isPerfect ? '🌸 完美天气！快带上主子出去玩~' : '🤗 今天还不错哦~适合出门！',
     summary: isPerfect
       ? '哇！今天的天气简直是为遛狗而生的！阳光微风，不冷不热，赶紧带上你家的毛孩子出去撒欢吧！(ﾉ>ω<)ﾉ'
-      : `今天${tempLevel}的天气挺适合出门的，是个陪毛孩子运动的好日子~ 记得享受在一起的每一刻哦！`,
+      : `今天${getTempLevel(temp)}的天气挺适合出门的，是个陪毛孩子运动的好日子~ 记得享受在一起的每一刻哦！`,
     walkAdvice: {
       suitable: true,
       duration: isPerfect ? '30-60分钟' : '20-40分钟',
