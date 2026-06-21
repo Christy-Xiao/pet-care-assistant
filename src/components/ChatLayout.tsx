@@ -25,16 +25,18 @@ interface ChatSession {
 interface ChatLayoutProps {
   children: React.ReactNode;
   onNewChat?: () => void;
+  userId?: number | null;
 }
 
-export default function ChatLayout({ children, onNewChat }: ChatLayoutProps) {
+export default function ChatLayout({ children, onNewChat, userId }: ChatLayoutProps) {
   const [sessions, setSessions] = useState<ChatSession[]>([]);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [loading, setLoading] = useState(false);
 
   const fetchSessions = useCallback(async () => {
     try {
-      const response = await fetch('/api/chat-sessions');
+      const url = userId ? `/api/chat-sessions?userId=${userId}` : '/api/chat-sessions';
+      const response = await fetch(url);
       if (response.ok) {
         const data = await response.json();
         setSessions(data.sessions || []);
@@ -42,7 +44,7 @@ export default function ChatLayout({ children, onNewChat }: ChatLayoutProps) {
     } catch (error) {
       console.error('获取会话列表失败:', error);
     }
-  }, []);
+  }, [userId]);
 
   useEffect(() => { fetchSessions(); }, [fetchSessions]);
 

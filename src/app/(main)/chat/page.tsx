@@ -3917,7 +3917,7 @@ ${generateCareMessage(undefined)}
   };
 
   return (
-    <ChatLayout onNewChat={handleNewChat}>
+    <ChatLayout onNewChat={handleNewChat} userId={userId}>
     <div className="h-full flex flex-col relative">
         {/* Data indicator */}
         {hasPets && (
