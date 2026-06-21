@@ -2469,6 +2469,8 @@ export default function ChatPage() {
   // 语音录制状态
   const [isRecording, setIsRecording] = useState(false);
   const [isProcessingVoice, setIsProcessingVoice] = useState(false);
+  const [micPosition, setMicPosition] = useState({ x: -20, y: -80 });  // 相对右下角偏移
+  const [isDraggingMic, setIsDraggingMic] = useState(false);
   
   // 宠物确认状态
   const [petConfirmation, setPetConfirmation] = useState<{
@@ -3816,7 +3818,7 @@ ${generateCareMessage(undefined)}
 
   return (
     <ChatLayout>
-    <div className="h-full flex flex-col">
+    <div className="h-full flex flex-col relative">
         {/* Data indicator */}
         {hasPets && (
           <div className="shrink-0 bg-emerald-50 border-b border-emerald-100 px-4 py-2 flex items-center gap-2 text-xs text-emerald-600">
@@ -4061,10 +4063,9 @@ ${generateCareMessage(undefined)}
           </AnimatePresence>
         </div>
 
-        {/* Quick Questions */}
-        {showQuickActions && (
+        {/* Quick Actions - 仅空聊天时显示 */}
+        {showQuickActions && messages.length === 0 && (
           <div className="px-4 pb-2">
-            <p className="text-xs text-gray-400 mb-2">快捷问题：</p>
             <div className="flex flex-wrap gap-2">
               {quickQuestions.map((q, i) => (
                 <button
@@ -4076,58 +4077,49 @@ ${generateCareMessage(undefined)}
                 </button>
               ))}
             </div>
-            
-            {/* 快捷操作按钮 */}
-            <p className="text-xs text-gray-400 mb-2 mt-4">快捷操作：</p>
+            <p className="text-xs text-gray-400 mb-2 mt-3">快捷操作：</p>
             <div className="flex flex-wrap gap-2">
               <button
                 onClick={() => handleQuickAction('addPet')}
-                className="flex items-center gap-2 text-sm px-3 py-2 bg-primary-50 border border-primary-200 rounded-xl text-primary-600 hover:bg-primary-100 transition-colors active:scale-95"
+                className="flex items-center gap-1.5 text-sm px-3 py-1.5 bg-primary-50 border border-primary-200 rounded-full text-primary-600 hover:bg-primary-100 transition-colors active:scale-95"
               >
-                <PawPrint className="w-4 h-4" />
-                添加宠物
+                <PawPrint className="w-3.5 h-3.5" /> 添加宠物
               </button>
               <button
                 onClick={() => handleQuickAction('recordWeight')}
-                className="flex items-center gap-2 text-sm px-3 py-2 bg-emerald-50 border border-emerald-200 rounded-xl text-emerald-600 hover:bg-emerald-100 transition-colors active:scale-95"
+                className="flex items-center gap-1.5 text-sm px-3 py-1.5 bg-emerald-50 border border-emerald-200 rounded-full text-emerald-600 hover:bg-emerald-100 transition-colors active:scale-95"
               >
-                <Scale className="w-4 h-4" />
-                记录体重
+                <Scale className="w-3.5 h-3.5" /> 体重
               </button>
               <button
                 onClick={() => handleQuickAction('healthAnalysis')}
-                className="flex items-center gap-2 text-sm px-3 py-2 bg-red-50 border border-red-200 rounded-xl text-red-600 hover:bg-red-100 transition-colors active:scale-95"
+                className="flex items-center gap-1.5 text-sm px-3 py-1.5 bg-red-50 border border-red-200 rounded-full text-red-600 hover:bg-red-100 transition-colors active:scale-95"
               >
-                <Camera className="w-4 h-4" />
-                健康分析
+                <Camera className="w-3.5 h-3.5" /> 健康分析
               </button>
               <button
                 onClick={() => handleQuickAction('createSchedule')}
-                className="flex items-center gap-2 text-sm px-3 py-2 bg-amber-50 border border-amber-200 rounded-xl text-amber-600 hover:bg-amber-100 transition-colors active:scale-95"
+                className="flex items-center gap-1.5 text-sm px-3 py-1.5 bg-amber-50 border border-amber-200 rounded-full text-amber-600 hover:bg-amber-100 transition-colors active:scale-95"
               >
-                <Calendar className="w-4 h-4" />
-                安排日程
+                <Calendar className="w-3.5 h-3.5" /> 日程
               </button>
               <button
                 onClick={() => handleQuickAction('medicationReminder')}
-                className="flex items-center gap-2 text-sm px-3 py-2 bg-purple-50 border border-purple-200 rounded-xl text-purple-600 hover:bg-purple-100 transition-colors active:scale-95"
+                className="flex items-center gap-1.5 text-sm px-3 py-1.5 bg-purple-50 border border-purple-200 rounded-full text-purple-600 hover:bg-purple-100 transition-colors active:scale-95"
               >
-                <Bell className="w-4 h-4" />
-                用药提醒
+                <Bell className="w-3.5 h-3.5" /> 用药提醒
               </button>
               <button
                 onClick={() => handleQuickAction('healthTest')}
-                className="flex items-center gap-2 text-sm px-3 py-2 bg-teal-50 border border-teal-200 rounded-xl text-teal-600 hover:bg-teal-100 transition-colors active:scale-95"
+                className="flex items-center gap-1.5 text-sm px-3 py-1.5 bg-teal-50 border border-teal-200 rounded-full text-teal-600 hover:bg-teal-100 transition-colors active:scale-95"
               >
-                <HeartPulse className="w-4 h-4" />
-                健康自测
+                <HeartPulse className="w-3.5 h-3.5" /> 健康自测
               </button>
               <button
                 onClick={() => handleQuickAction('viewSchedule')}
-                className="flex items-center gap-2 text-sm px-3 py-2 bg-orange-50 border border-orange-200 rounded-xl text-orange-600 hover:bg-orange-100 transition-colors active:scale-95"
+                className="flex items-center gap-1.5 text-sm px-3 py-1.5 bg-orange-50 border border-orange-200 rounded-full text-orange-600 hover:bg-orange-100 transition-colors active:scale-95"
               >
-                <Calendar className="w-4 h-4" />
-                查看日程
+                <Calendar className="w-3.5 h-3.5" /> 查看日程
               </button>
             </div>
           </div>
@@ -4208,39 +4200,6 @@ ${generateCareMessage(undefined)}
         {/* Input */}
         <div className="shrink-0 p-4 bg-white/90 backdrop-blur-sm border-t border-gray-100">
           <div className="flex items-center gap-2.5">
-            {/* 麦克风按钮 */}
-            {isRecording ? (
-              <motion.button
-                whileTap={{ scale: 0.9 }}
-                onMouseUp={stopRecording}
-                onTouchEnd={stopRecording}
-                onMouseLeave={stopRecording}
-                className="relative p-2.5 rounded-full bg-red-500 text-white shadow-lg shadow-red-500/20"
-                title="松开结束录音"
-              >
-                <span className="absolute inset-0 rounded-full bg-red-400 animate-ping opacity-40" />
-                <MicOff className="w-[18px] h-[18px] relative z-10" />
-              </motion.button>
-            ) : (
-              <button
-                onMouseDown={startRecording}
-                onTouchStart={(e) => { e.preventDefault(); startRecording(); }}
-                disabled={isLoading || isProcessingVoice}
-                className={`p-2.5 rounded-full transition-all ${
-                  isProcessingVoice 
-                    ? 'bg-primary-100 text-primary-500' 
-                    : 'bg-gray-100 text-gray-500 hover:bg-gray-200 hover:text-gray-700 active:scale-95'
-                } disabled:opacity-50 disabled:cursor-not-allowed`}
-                title="按住说话"
-              >
-                {isProcessingVoice ? (
-                  <Loader2 className="w-[18px] h-[18px] animate-spin" />
-                ) : (
-                  <Mic className="w-[18px] h-[18px]" />
-                )}
-              </button>
-            )}
-
             {/* 图片按钮 */}
             <button
               onClick={() => setShowImageUpload(!showImageUpload)}
@@ -4282,6 +4241,52 @@ ${generateCareMessage(undefined)}
             </motion.button>
           </div>
         </div>
+
+        {/* 可拖动麦克风悬浮按钮 */}
+        <motion.div
+          drag
+          dragMomentum={false}
+          dragElastic={0}
+          onDragStart={() => setIsDraggingMic(true)}
+          onDragEnd={() => setIsDraggingMic(false)}
+          onDrag={(e, info) => {
+            setMicPosition({ x: micPosition.x + info.delta.x, y: micPosition.y + info.delta.y });
+          }}
+          style={{ position: 'absolute', right: 12 + Math.max(micPosition.x, -60), bottom: 70 + Math.max(micPosition.y, -120) }}
+          whileHover={{ scale: 1.05 }}
+          className="z-30"
+        >
+          {isRecording ? (
+            <motion.button
+              onMouseUp={stopRecording}
+              onTouchEnd={stopRecording}
+              onMouseLeave={() => { if (isRecording && !isDraggingMic) stopRecording(); }}
+              className="relative w-12 h-12 rounded-full bg-red-500 text-white shadow-lg shadow-red-500/30 flex items-center justify-center"
+              title="松开结束录音"
+            >
+              <span className="absolute inset-0 rounded-full bg-red-400 animate-ping opacity-40" />
+              <MicOff className="w-5 h-5 relative z-10" />
+            </motion.button>
+          ) : (
+            <button
+              onMouseDown={(e) => { if (!isDraggingMic) startRecording(); }}
+              onTouchStart={(e) => { if (!isDraggingMic) { e.preventDefault(); startRecording(); } }}
+              disabled={isLoading || isProcessingVoice}
+              className={`w-11 h-11 rounded-full flex items-center justify-center shadow-lg transition-shadow ${
+                isProcessingVoice 
+                  ? 'bg-gray-200 text-primary-500' 
+                  : 'bg-gradient-to-br from-emerald-400 to-teal-500 text-white shadow-emerald-500/25 active:shadow-emerald-500/40'
+              } disabled:opacity-50 disabled:cursor-not-allowed`}
+              title="按住说话"
+            >
+              {isProcessingVoice ? (
+                <Loader2 className="w-5 h-5 animate-spin" />
+              ) : (
+                <Mic className="w-5 h-5" />
+              )}
+            </button>
+          )}
+        </motion.div>
       {/* Push Settings Modal */}
       <PushSettingsModal 
         isOpen={showPushSettings} 
