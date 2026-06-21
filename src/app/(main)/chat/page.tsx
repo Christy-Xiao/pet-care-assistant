@@ -2,7 +2,7 @@
 
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Send, Bot, User, Loader2, Sparkles, Trash2, Info, Database, Bell, Plus, MessageSquare, ChevronDown, X, Check, Image, Camera, Scale, PawPrint, Calendar, Heart, Clock, MapPin, HeartPulse, Activity, Mic, MicOff } from 'lucide-react';
+import { Send, Bot, User, Loader2, Sparkles, Trash2, Info, Database, Bell, Plus, MessageSquare, ChevronDown, X, Check, Image, Camera, Scale, PawPrint, Calendar, Heart, Clock, MapPin, HeartPulse, Activity, Mic, MicOff, BarChart3 } from 'lucide-react';
 import { generateCareMessage, getTodayFestival, getTomorrowFestival } from '@/lib/care-engine';
 import { useApp } from '@/store/AppContext';
 import ChatLayout from '@/components/ChatLayout';
@@ -2753,6 +2753,9 @@ export default function ChatPage() {
       case 'viewSchedule':
         setInput('查看日程安排');
         break;
+      case 'weeklyReport':
+        setInput('生成我的每周报告');
+        break;
       default:
         break;
     }
@@ -4086,6 +4089,18 @@ ${generateCareMessage(undefined)}
                 <PawPrint className="w-3.5 h-3.5" /> 添加宠物
               </button>
               <button
+                onClick={() => handleQuickAction('weeklyReport')}
+                className="flex items-center gap-1.5 text-sm px-3 py-1.5 bg-indigo-50 border border-indigo-200 rounded-full text-indigo-600 hover:bg-indigo-100 transition-colors active:scale-95"
+              >
+                <BarChart3 className="w-3.5 h-3.5" /> 每周报告
+              </button>
+              <button
+                onClick={() => handleQuickAction('createSchedule')}
+                className="flex items-center gap-1.5 text-sm px-3 py-1.5 bg-amber-50 border border-amber-200 rounded-full text-amber-600 hover:bg-amber-100 transition-colors active:scale-95"
+              >
+                <Calendar className="w-3.5 h-3.5" /> 护理日程
+              </button>
+              <button
                 onClick={() => handleQuickAction('recordWeight')}
                 className="flex items-center gap-1.5 text-sm px-3 py-1.5 bg-emerald-50 border border-emerald-200 rounded-full text-emerald-600 hover:bg-emerald-100 transition-colors active:scale-95"
               >
@@ -4096,24 +4111,6 @@ ${generateCareMessage(undefined)}
                 className="flex items-center gap-1.5 text-sm px-3 py-1.5 bg-red-50 border border-red-200 rounded-full text-red-600 hover:bg-red-100 transition-colors active:scale-95"
               >
                 <Camera className="w-3.5 h-3.5" /> 健康分析
-              </button>
-              <button
-                onClick={() => handleQuickAction('createSchedule')}
-                className="flex items-center gap-1.5 text-sm px-3 py-1.5 bg-amber-50 border border-amber-200 rounded-full text-amber-600 hover:bg-amber-100 transition-colors active:scale-95"
-              >
-                <Calendar className="w-3.5 h-3.5" /> 日程
-              </button>
-              <button
-                onClick={() => handleQuickAction('medicationReminder')}
-                className="flex items-center gap-1.5 text-sm px-3 py-1.5 bg-purple-50 border border-purple-200 rounded-full text-purple-600 hover:bg-purple-100 transition-colors active:scale-95"
-              >
-                <Bell className="w-3.5 h-3.5" /> 用药提醒
-              </button>
-              <button
-                onClick={() => handleQuickAction('healthTest')}
-                className="flex items-center gap-1.5 text-sm px-3 py-1.5 bg-teal-50 border border-teal-200 rounded-full text-teal-600 hover:bg-teal-100 transition-colors active:scale-95"
-              >
-                <HeartPulse className="w-3.5 h-3.5" /> 健康自测
               </button>
               <button
                 onClick={() => handleQuickAction('viewSchedule')}
