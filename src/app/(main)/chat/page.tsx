@@ -2469,8 +2469,6 @@ export default function ChatPage() {
   // 语音录制状态
   const [isRecording, setIsRecording] = useState(false);
   const [isProcessingVoice, setIsProcessingVoice] = useState(false);
-  const [micPosition, setMicPosition] = useState({ x: -20, y: -80 });  // 相对右下角偏移
-  const [isDraggingMic, setIsDraggingMic] = useState(false);
   
   // 宠物确认状态
   const [petConfirmation, setPetConfirmation] = useState<{
@@ -4209,6 +4207,38 @@ ${generateCareMessage(undefined)}
             >
               <Image className="w-[18px] h-[18px]" />
             </button>
+
+            {/* 麦克风按钮 - 固定在输入框左侧 */}
+            {isRecording ? (
+              <button
+                onMouseUp={stopRecording}
+                onTouchEnd={stopRecording}
+                onMouseLeave={() => { if (isRecording) stopRecording(); }}
+                className="p-2.5 rounded-full bg-red-500 text-white shadow-md shadow-red-500/30 transition-colors"
+                title="松开结束录音"
+              >
+                <span className="absolute inset-0 rounded-full bg-red-400 animate-ping opacity-40" />
+                <MicOff className="w-[18px] h-[18px] relative z-10" />
+              </button>
+            ) : (
+              <button
+                onMouseDown={() => startRecording()}
+                onTouchStart={(e) => { e.preventDefault(); startRecording(); }}
+                disabled={isLoading || isProcessingVoice}
+                className={`p-2.5 rounded-full transition-colors ${
+                  isProcessingVoice 
+                    ? 'bg-primary-100 text-primary-500' 
+                    : 'bg-emerald-50 text-emerald-500 hover:bg-emerald-100 active:bg-emerald-200'
+                } disabled:opacity-50 disabled:cursor-not-allowed`}
+                title="按住说话"
+              >
+                {isProcessingVoice ? (
+                  <Loader2 className="w-[18px] h-[18px] animate-spin" />
+                ) : (
+                  <Mic className="w-[18px] h-[18px]" />
+                )}
+              </button>
+            )}
             
             {/* 文本输入 */}
             <input
@@ -4238,52 +4268,6 @@ ${generateCareMessage(undefined)}
             </motion.button>
           </div>
         </div>
-
-        {/* 可拖动麦克风悬浮按钮 */}
-        <motion.div
-          drag
-          dragMomentum={false}
-          dragElastic={0}
-          onDragStart={() => setIsDraggingMic(true)}
-          onDragEnd={() => setIsDraggingMic(false)}
-          onDrag={(e, info) => {
-            setMicPosition({ x: micPosition.x + info.delta.x, y: micPosition.y + info.delta.y });
-          }}
-          style={{ position: 'absolute', right: 12 + Math.max(micPosition.x, -60), bottom: 70 + Math.max(micPosition.y, -120) }}
-          whileHover={{ scale: 1.05 }}
-          className="z-30"
-        >
-          {isRecording ? (
-            <motion.button
-              onMouseUp={stopRecording}
-              onTouchEnd={stopRecording}
-              onMouseLeave={() => { if (isRecording && !isDraggingMic) stopRecording(); }}
-              className="relative w-12 h-12 rounded-full bg-red-500 text-white shadow-lg shadow-red-500/30 flex items-center justify-center"
-              title="松开结束录音"
-            >
-              <span className="absolute inset-0 rounded-full bg-red-400 animate-ping opacity-40" />
-              <MicOff className="w-5 h-5 relative z-10" />
-            </motion.button>
-          ) : (
-            <button
-              onMouseDown={(e) => { if (!isDraggingMic) startRecording(); }}
-              onTouchStart={(e) => { if (!isDraggingMic) { e.preventDefault(); startRecording(); } }}
-              disabled={isLoading || isProcessingVoice}
-              className={`w-11 h-11 rounded-full flex items-center justify-center shadow-lg transition-shadow ${
-                isProcessingVoice 
-                  ? 'bg-gray-200 text-primary-500' 
-                  : 'bg-gradient-to-br from-emerald-400 to-teal-500 text-white shadow-emerald-500/25 active:shadow-emerald-500/40'
-              } disabled:opacity-50 disabled:cursor-not-allowed`}
-              title="按住说话"
-            >
-              {isProcessingVoice ? (
-                <Loader2 className="w-5 h-5 animate-spin" />
-              ) : (
-                <Mic className="w-5 h-5" />
-              )}
-            </button>
-          )}
-        </motion.div>
       {/* Push Settings Modal */}
       <PushSettingsModal 
         isOpen={showPushSettings} 
