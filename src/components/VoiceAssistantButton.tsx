@@ -67,7 +67,7 @@ export default function VoiceAssistantButton({ showFab = true, onActionComplete 
 
   // 当结果准备好时，自动弹出确认框
   useEffect(() => {
-    if (state === 'ready' && result?.extraction?.intents?.length > 0) {
+    if (state === 'ready' && (result?.extraction?.intents?.length ?? 0) > 0) {
       setActionDone(false);
       setShowConfirmDialog(true);
     }
