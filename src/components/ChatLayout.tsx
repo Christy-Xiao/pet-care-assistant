@@ -24,9 +24,10 @@ interface ChatSession {
 
 interface ChatLayoutProps {
   children: React.ReactNode;
+  onNewChat?: () => void;
 }
 
-export default function ChatLayout({ children }: ChatLayoutProps) {
+export default function ChatLayout({ children, onNewChat }: ChatLayoutProps) {
   const [sessions, setSessions] = useState<ChatSession[]>([]);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -67,9 +68,9 @@ export default function ChatLayout({ children }: ChatLayoutProps) {
   const DrawerContent = () => (
     <div className="flex flex-col h-full bg-white">
       <div className="px-5 pt-14 pb-4 border-b border-gray-100">
-        <button onClick={() => setDrawerOpen(false)}
-          className="w-full flex items-center gap-3 px-4 py-3 rounded-xl bg-gray-50 hover:bg-gray-100 transition-colors">
-          <Plus className="w-5 h-5 text-gray-500" />
+        <button onClick={() => { setDrawerOpen(false); onNewChat?.(); }}
+          className="w-full flex items-center gap-3 px-4 py-3 rounded-xl bg-gray-50 hover:bg-gray-100 transition-colors active:scale-[0.98]">
+          <Plus className="w-5 h-5 text-primary-500" />
           <span className="text-sm font-medium text-gray-700">新对话</span>
         </button>
       </div>
