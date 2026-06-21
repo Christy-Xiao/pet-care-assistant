@@ -1,30 +1,7 @@
 'use client';
 
-import Navbar from '@/components/Navbar';
-import Sidebar from '@/components/Sidebar';
-import ProtectedRoute from '@/components/ProtectedRoute';
-import { ReactNode } from 'react';
-import { usePathname } from 'next/navigation';
-
-export default function Template({ children }: { children: ReactNode }) {
-  const pathname = usePathname();
-  
-  // Don't show layout on login page
-  if (pathname === '/login') {
-    return <>{children}</>;
-  }
-
-  return (
-    <ProtectedRoute>
-      <div className="min-h-screen bg-gradient-to-br from-primary-50 via-white to-secondary-50">
-        <Navbar />
-        <div className="flex">
-          <Sidebar />
-          <main className="flex-1 p-6 ml-64 mt-16 min-h-[calc(100vh-4rem)]">
-            {children}
-          </main>
-        </div>
-      </div>
-    </ProtectedRoute>
-  );
+// Template 已废弃 — 所有页面布局由 (main)/layout.tsx 统一管理
+// 这里只做透传，不添加任何额外 UI
+export default function Template({ children }: { children: React.ReactNode }) {
+  return <>{children}</>;
 }

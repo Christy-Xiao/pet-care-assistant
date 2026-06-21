@@ -11,7 +11,7 @@ export const metadata: Metadata = {
   title: '毛绒管家 - AI宠物健康助手',
   description: 'AI驱动的智能宠物健康管理助手，帮助您管理宠物健康、追踪护理日程、AI健康咨询',
   manifest: '/manifest.json',
-  themeColor: '#8b5cf6',
+  themeColor: '#F97350',
   viewport: {
     width: 'device-width',
     initialScale: 1,

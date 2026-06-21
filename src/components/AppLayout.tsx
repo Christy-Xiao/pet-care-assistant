@@ -2,44 +2,23 @@
 
 import { AuthProvider } from '@/store/AuthContext';
 import { AppProvider } from '@/store/AppContext';
-import Navbar from '@/components/Navbar';
-import Sidebar from '@/components/Sidebar';
 import ProtectedRoute from '@/components/ProtectedRoute';
-import { usePathname } from 'next/navigation';
 import { ReactNode } from 'react';
+import { usePathname } from 'next/navigation';
 
 function AppContent({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const isLoginPage = pathname === '/login';
-  const isChatPage = pathname === '/chat';
   
   if (isLoginPage) {
-    // 登录页面不需要 Navbar 和 Sidebar
     return <>{children}</>;
   }
 
-  if (isChatPage) {
-    // AI 对话页面 — 全屏模式，无 Navbar/Sidebar
-    return (
-      <ProtectedRoute>
-        <div className="h-screen w-screen overflow-hidden bg-white">
-          {children}
-        </div>
-      </ProtectedRoute>
-    );
-  }
-  
+  // 统一交给 (main)/layout.tsx 处理布局（底部TabBar + 手机容器）
+  // 这里只做权限保护
   return (
     <ProtectedRoute>
-      <div className="min-h-screen bg-gradient-to-br from-primary-50 via-white to-secondary-50">
-        <Navbar />
-        <div className="flex">
-          <Sidebar />
-          <main className="flex-1 p-6 ml-64 mt-16 min-h-[calc(100vh-4rem)]">
-            {children}
-          </main>
-        </div>
-      </div>
+      {children}
     </ProtectedRoute>
   );
 }
