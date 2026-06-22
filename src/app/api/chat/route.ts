@@ -1923,6 +1923,8 @@ ${upcomingSchedules.length > 0 ? `\n【提醒】${upcomingSchedules.map(s => `${
     let reply = '';
 
     if (hasWalkIntent(lastMessage) && pets.length > 0) {
+      // 模拟AI思考延迟（2~3秒随机）
+      await new Promise(r => setTimeout(r, 2000 + Math.random() * 1000));
       agentThinking = generateAgentThinking(pets, lastMessage);
       if (agentThinking) {
         reply = agentThinking.finalReply;
@@ -1931,6 +1933,8 @@ ${upcomingSchedules.length > 0 ? `\n【提醒】${upcomingSchedules.map(s => `${
 
     // 场景2：拒食/食欲不振 → 跨时间记忆关联
     if (!agentThinking && hasAppetiteLossIntent(lastMessage) && pets.length > 0) {
+      // 模拟AI思考延迟（2~3秒随机）
+      await new Promise(r => setTimeout(r, 2000 + Math.random() * 1000));
       agentThinking = generateAgentThinkingForAppetiteLoss(pets, lastMessage);
       if (agentThinking) {
         reply = agentThinking.finalReply;
