@@ -3926,7 +3926,7 @@ ${generateCareMessage(undefined)}
         setTimeout(() => {
           setShowThinkingSteps(false);
           setAgentThinking(null);
-        }, 8000);
+        }, 15000);
       }
 
       // 如果创建了日程，刷新本地日程数据
@@ -4118,7 +4118,7 @@ ${generateCareMessage(undefined)}
                           key={index}
                           initial={{ opacity: 0, x: -10 }}
                           animate={{ opacity: 1, x: 0 }}
-                          transition={{ delay: index * 0.35 }}
+                          transition={{ delay: index * 0.8 }}
                           className={`rounded-lg p-3 ${
                             step.type === 'intent' ? 'bg-blue-500/10 border border-blue-500/30' :
                             step.type === 'tool' ? 'bg-cyan-500/10 border border-cyan-500/30' :
