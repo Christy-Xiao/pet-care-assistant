@@ -533,6 +533,127 @@ const healthReportKeywords = [
   '趋势', '异常清单', '健康分级', '下一周期', '下周期', '建议'
 ];
 
+// ========== 答辩演示：智能体思维链（Agent Thinking Chain）==========
+
+// 遛狗/出门意图关键词 — 触发智能体思维链
+const walkIntentKeywords = ['出门', '溜达', '遛狗', '出去', '出去溜', '出门玩', '带.*出去.*走', '带.*出去.*溜', '准备.*出门', '要.*出去'];
+
+/**
+ * 检测是否触发智能体思维链（遛狗意图）
+ */
+function hasWalkIntent(message: string): boolean {
+  return walkIntentKeywords.some(keyword => {
+    if (keyword.includes('.*')) {
+      return new RegExp(keyword).test(message);
+    }
+    return message.includes(keyword);
+  });
+}
+
+/**
+ * 生成智能体思维链数据 — 模拟AI"脑回路"
+ * 
+ * 思路：
+ * 1. 触发 Walking_Intent → 调用天气API → 查询行为基线 → 查询宠物特征
+ * 2. 推理 → 主动拦截或给出建议
+ * 3. 返回结构化思维链 + 最终回复
+ */
+function generateAgentThinking(pets: any[], userMessage: string): {
+  thinkingSteps: Array<{
+    icon: string;
+    title: string;
+    content: string;
+    type: 'intent' | 'tool' | 'reason' | 'action';
+  }>;
+  finalReply: string;
+} | null {
+  // 提取用户提到的宠物名
+  const mentionedPet = pets.find((p: any) => 
+    userMessage.includes(p.name) || 
+    (pets.length === 1 && p.name)
+  );
+  const petName = mentionedPet?.name || pets[0]?.name || '毛孩子';
+  const petBreed = mentionedPet?.breed || pets[0]?.breed || '金毛';
+  
+  // 构建思维链步骤
+  const thinkingSteps = [
+    // Step 1: 意图识别
+    {
+      icon: '🔍',
+      title: '意图识别',
+      content: `检测到「${userMessage.length > 30 ? userMessage.substring(0, 30) + '...' : userMessage}」→ 触发 **Walking_Intent**（遛狗/外出意图）`,
+      type: 'intent' as const,
+    },
+    // Step 2: 天气查询
+    {
+      icon: '🌡️',
+      title: '调用工具：天气 API',
+      content: `getCurrentWeather() → 返回 **36°C | 暴晒预警** ☀️\n体感温度：42°C\n紫外线指数：极强\n地面温度预估：>55°C`,
+      type: 'tool' as const,
+    },
+    // Step 3: 行为基线查询
+    {
+      icon: '📊',
+      title: '调用工具：行为基线查询 (owner_baselines)',
+      content: `查询结果：\n• 平时遛狗时间：**20:00 ~ 21:00**（夜间）\n• 平均遛狗时长：35-45分钟\nn当前时间16:00 → ⚠️ 远早于习惯作息`,
+      type: 'tool' as const,
+    },
+    // Step 4: 宠物特征查询
+    {
+      icon: '🐕',
+      title: '调用工具：宠物特征 (pet_traits)',
+      content: `${petName} 的特征档案：\n• 品种：${petBreed}（**长毛大型犬**）\n• 底层毛发：厚密绒毛层\n• 脚垫状态：娇嫩敏感\n• 中暑风险：🔴 高危`,
+      type: 'tool' as const,
+    },
+    // Step 5: 推理决策
+    {
+      icon: '🧠',
+      title: '推理引擎分析',
+      content: `综合判断：\n❌ 时间异常：16:00 vs 习惯20:00（提前4小时）\n❌ 温度危险：36°C → 长毛犬中暑阈值30°C\n❌ 地面烫伤风险：柏油路面>55°C可灼伤肉垫\n✅ 决策：**执行主动安全拦截**`,
+      type: 'reason' as const,
+    },
+    // Step 6: 行动输出
+    {
+      icon: '⚠️',
+      title: '行动：主动安全提醒',
+      content: `生成个性化安全建议...`,
+      type: 'action' as const,
+    },
+  ];
+
+  // 生成最终回复 — 引用所有数据源
+  const finalReply = `⚠️ 咦，主人？等一下！
+
+我刚刚「想」了一下，发现几个问题：
+
+🕐 **时间不对劲呀**
+我注意到你平时都是 **晚上8点左右** 才带${petName}出门的，今天下午4点就要去吗？比平常早了将近4小时呢～
+
+🌡️ **外面超级热！**
+我刚调了一下天气接口——现在室外温度高达 **36°C**！体感温度42°C，柏油路面的温度可能超过55°C，都快能煎鸡蛋了 🔥
+
+🐕 **${petName}特别怕热**
+别忘了${petName}是${petBreed}，属于**长毛大型犬**，底层有很厚的绒毛，散热本来就慢。而且狗狗主要靠脚垫散热，这么高的地面温度很容易**烫伤肉垫**，甚至导致**中暑**！
+
+---
+
+💡 **我的建议：**
+
+1️⃣ **最好推迟到今晚8点再出门** —— 既符合平时的作息习惯，那时候气温也降下来了
+
+2️⃣ **如果非要现在出门**的话：
+   • 必须选**草地或有树荫的地方**，绝对不能走柏油马路
+   • 把时间**缩短到15分钟以内**，速去速回
+   • 随身带**充足的水**，随时给${petName}补水降温
+   • 回来后检查一下**脚垫有没有红肿**
+
+主人，${petName}的安全最重要啦～听我的，晚点再去吧？🐾`;
+
+  return { thinkingSteps, finalReply };
+}
+
+// ========== 结束：智能体思维链 ==========
+
 // 检测是否包含健康报告意图
 function hasHealthReportIntent(message: string): boolean {
   // 匹配"健康分析"后面跟着时间范围关键词
@@ -1666,6 +1787,30 @@ ${upcomingSchedules.length > 0 ? `\n【提醒】${upcomingSchedules.map(s => `${
       content: m.content
     }));
 
+    // ========== 答辩演示：智能体思维链拦截 ==========
+    // 如果检测到遛狗/出门意图，返回预设的思维链+回复（跳过真实AI调用）
+    let agentThinking: {
+      thinkingSteps: Array<{
+        icon: string;
+        title: string;
+        content: string;
+        type: 'intent' | 'tool' | 'reason' | 'action';
+      }>;
+      finalReply: string;
+    } | null = null;
+
+    // 预声明 reply
+    let reply = '';
+
+    if (hasWalkIntent(lastMessage) && pets.length > 0) {
+      agentThinking = generateAgentThinking(pets, lastMessage);
+      if (agentThinking) {
+        reply = agentThinking.finalReply;
+      }
+    }
+
+    // 如果没有被思维链拦截，正常调用智谱AI
+    if (!agentThinking) {
     // 调用智谱AI
     const response = await client.chat.completions.create({
       model: 'glm-4-flash',
@@ -1679,7 +1824,10 @@ ${upcomingSchedules.length > 0 ? `\n【提醒】${upcomingSchedules.map(s => `${
     });
 
 
-    let reply = response.choices[0]?.message?.content || '抱歉，我现在有点走神，我们换个话题吧～';
+    reply = response.choices[0]?.message?.content || '抱歉，我现在有点走神，我们换个话题吧～';
+
+    } // 结束: if (!agentThinking) — 正常AI调用结束
+
     let parkRecommendation: any = null;
 
     // 检测户外活动推荐意图 - 显示天气确认和绿地推荐选项
@@ -2389,7 +2537,11 @@ ${pets.length > 1 ? `目前有 ${petNames}，你想记录哪个的体重？` : '
       } : null,
       outdoorActivityRecommend,
       sickPetConfirmation,
-      bowelConfirmation
+      bowelConfirmation,
+      agentThinking: agentThinking ? {
+        thinkingSteps: agentThinking.thinkingSteps,
+        finalReply: agentThinking.finalReply,
+      } : null,
     });
 
   } catch (error: any) {

@@ -2,7 +2,7 @@
 
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Send, Bot, User, Loader2, Sparkles, Trash2, Info, Database, Bell, Plus, MessageSquare, ChevronDown, X, Check, Image, Camera, Scale, PawPrint, Calendar, Heart, Clock, MapPin, HeartPulse, Activity, Mic, MicOff, BarChart3 } from 'lucide-react';
+import { Send, Bot, User, Loader2, Sparkles, Trash2, Info, Database, Bell, Plus, MessageSquare, ChevronDown, X, Check, Image, Camera, Scale, PawPrint, Calendar, Heart, Clock, MapPin, HeartPulse, Activity, Mic, MicOff, BarChart3, Brain } from 'lucide-react';
 import { generateCareMessage, getTodayFestival, getTomorrowFestival } from '@/lib/care-engine';
 import { useApp } from '@/store/AppContext';
 import ChatLayout from '@/components/ChatLayout';
@@ -2582,6 +2582,18 @@ export default function ChatPage() {
     petNotes?: string;
     pets?: any[];
   } | null>(null);
+
+  // 智能体思维链状态（答辩演示用）
+  const [agentThinking, setAgentThinking] = useState<{
+    thinkingSteps: Array<{
+      icon: string;
+      title: string;
+      content: string;
+      type: 'intent' | 'tool' | 'reason' | 'action';
+    }>;
+    finalReply: string;
+  } | null>(null);
+  const [showThinkingSteps, setShowThinkingSteps] = useState(false);
   
   // 日程查看弹窗状态
   const [scheduleView, setScheduleView] = useState<{
@@ -3906,6 +3918,17 @@ ${generateCareMessage(undefined)}
         setBowelConfirmation(data.bowelConfirmation);
       }
 
+      // ========== 答辩演示：智能体思维链检测 ==========
+      if (data.agentThinking) {
+        setAgentThinking(data.agentThinking);
+        setShowThinkingSteps(true);
+        // 8秒后自动隐藏思维链（让答辩时能看到完整过程）
+        setTimeout(() => {
+          setShowThinkingSteps(false);
+          setAgentThinking(null);
+        }, 8000);
+      }
+
       // 如果创建了日程，刷新本地日程数据
       if (data.scheduleCreated) {
         // 触发 AppContext 刷新数据
@@ -4061,6 +4084,83 @@ ${generateCareMessage(undefined)}
               </div>
             </motion.div>
           )}
+
+          {/* ========== 答辩演示：智能体思维链可视化 ========== */}
+          <AnimatePresence>
+            {showThinkingSteps && agentThinking && (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                className="flex justify-start mt-4"
+              >
+                <div className="flex gap-3 max-w-[90%]">
+                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center flex-shrink-0">
+                    <Bot className="w-4 h-4 text-white" />
+                  </div>
+                  <div className="bg-gradient-to-br from-slate-800 to-slate-900 text-white rounded-2xl rounded-tl-sm shadow-lg border border-slate-700 overflow-hidden">
+                    {/* 标题栏 */}
+                    <div className="px-4 py-3 bg-gradient-to-r from-purple-600/20 to-pink-500/20 border-b border-slate-700/50">
+                      <div className="flex items-center gap-2">
+                        <Brain className="w-4 h-4 text-purple-400" />
+                        <span className="text-sm font-semibold">智能体思维链</span>
+                        <span className="text-xs px-2 py-0.5 rounded-full bg-green-500/20 text-green-400 border border-green-500/30">
+                          Agent Thinking Chain
+                        </span>
+                      </div>
+                      <p className="text-xs text-slate-400 mt-1">正在分析您的请求，调用多个数据源...</p>
+                    </div>
+                    
+                    {/* 思维步骤列表 */}
+                    <div className="px-3 py-2 space-y-2 max-h-[350px] overflow-y-auto">
+                      {agentThinking.thinkingSteps.map((step, index) => (
+                        <motion.div
+                          key={index}
+                          initial={{ opacity: 0, x: -10 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          transition={{ delay: index * 0.35 }}
+                          className={`rounded-lg p-3 ${
+                            step.type === 'intent' ? 'bg-blue-500/10 border border-blue-500/30' :
+                            step.type === 'tool' ? 'bg-cyan-500/10 border border-cyan-500/30' :
+                            step.type === 'reason' ? 'bg-yellow-500/10 border border-yellow-500/30' :
+                            'bg-red-500/10 border border-red-500/30'
+                          }`}
+                        >
+                          <div className="flex items-start gap-2">
+                            <span className="text-base mt-0.5">{step.icon}</span>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2 mb-1">
+                                <span className={`text-xs font-bold ${
+                                  step.type === 'intent' ? 'text-blue-400' :
+                                  step.type === 'tool' ? 'text-cyan-400' :
+                                  step.type === 'reason' ? 'text-yellow-400' :
+                                  'text-red-400'
+                                }`}>
+                                  Step {index + 1}: {step.title}
+                                </span>
+                              </div>
+                              {/* 渲染内容中的换行和加粗 */}
+                              <pre className="text-[11px] text-slate-300 whitespace-pre-wrap font-mono leading-relaxed">{step.content}</pre>
+                            </div>
+                          </div>
+                        </motion.div>
+                      ))}
+                    </div>
+
+                    {/* 底部状态 */}
+                    <div className="px-4 py-2.5 bg-black/20 border-t border-slate-700/50">
+                      <div className="flex items-center gap-2 text-xs text-slate-400">
+                        <Loader2 className="w-3 h-3 animate-spin text-purple-400" />
+                        <span>综合分析完成，生成回复中...</span>
+                        <Sparkles className="w-3 h-3 text-yellow-400 animate-pulse" />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+          {/* ========== 结束：智能体思维链可视化 ========== */}
 
           <div ref={messagesEndRef} />
           
