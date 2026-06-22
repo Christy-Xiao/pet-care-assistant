@@ -589,7 +589,7 @@ function generateAgentThinking(pets: any[], userMessage: string): {
     {
       icon: '🌡️',
       title: '调用工具：天气 API',
-      content: `getCurrentWeather() → 返回 **36°C | 暴晒预警** ☀️\n体感温度：42°C\n紫外线指数：极强\n地面温度预估：>55°C`,
+      content: `getCurrentWeather() → 返回 **35°C | 晴（大太阳）** ☀️☀️\n体感温度：41°C\n紫外线指数：11级（极强）\n地面温度预估：>52°C\n风力：2级（微风）`,
       type: 'tool' as const,
     },
     // Step 3: 行为基线查询
@@ -610,7 +610,7 @@ function generateAgentThinking(pets: any[], userMessage: string): {
     {
       icon: '🧠',
       title: '推理引擎分析',
-      content: `综合判断：\n❌ 时间异常：16:00 vs 习惯20:00（提前4小时）\n❌ 温度危险：36°C → 长毛犬中暑阈值30°C\n❌ 地面烫伤风险：柏油路面>55°C可灼伤肉垫\n✅ 决策：**执行主动安全拦截**`,
+      content: `综合判断：\n❌ 时间异常：16:00 vs 习惯20:00（提前4小时）\n❌ 温度危险：35°C 晴天烈日 → 长毛犬中暑阈值30°C\n❌ 地面烫伤风险：阳光直射柏油路面>52°C可灼伤肉垫\n❌ 紫外线极强：11级 → 易晒伤鼻头/耳尖\n✅ 决策：**执行主动安全拦截**`,
       type: 'reason' as const,
     },
     // Step 6: 行动输出
@@ -631,7 +631,7 @@ function generateAgentThinking(pets: any[], userMessage: string): {
 我注意到你平时都是 **晚上8点左右** 才带${petName}出门的，今天下午4点就要去吗？比平常早了将近4小时呢～
 
 🌡️ **外面超级热！**
-我刚调了一下天气接口——现在室外温度高达 **36°C**！体感温度42°C，柏油路面的温度可能超过55°C，都快能煎鸡蛋了 🔥
+我刚调了一下天气接口——现在室外温度高达 **35°C**，晴天大太阳直射！体感温度41°C，柏油路面的温度可能超过52°C，都快能煎鸡蛋了 🔥☀️
 
 🐕 **${petName}特别怕热**
 别忘了${petName}是${petBreed}，属于**长毛大型犬**，底层有很厚的绒毛，散热本来就慢。而且狗狗主要靠脚垫散热，这么高的地面温度很容易**烫伤肉垫**，甚至导致**中暑**！
