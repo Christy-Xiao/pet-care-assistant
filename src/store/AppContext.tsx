@@ -360,7 +360,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
           isVeryHot ? '🔥 高温预警！今天大太阳暴晒，注意避暑~' : '☀️ 今天好热呀！带主子出门要注意防晒哦~',
           isVeryHot
             ? `${temp}°C 大太阳直射！体感${feelsLike}°C，柏油路面可能超过52°C会烫伤肉垫。建议：选择傍晚8点后遛弯、控制在15分钟内、随身带水给毛孩子补水、回家检查脚垫有没有红肿 🐾`
-            : `${temp}°C 晴天暖洋洋～不过对毛孩子来说已经偏热啦。建议选清晨或傍晚出门，时间20分钟左右，记得带水随时补哦~ (๑´ڡ`๑)`
+            : `${temp}°C 晴天暖洋洋～不过对毛孩子来说已经偏热啦。建议选清晨或傍晚出门，时间20分钟左右，记得带水随时补哦~ (*/ω\\*)`
         );
         localStorage.setItem('lastWeatherNotification', today);
         console.log(`[AppContext] 天气PWA推送: 高温预警 ${temp}°C`);

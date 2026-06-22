@@ -102,7 +102,7 @@ export default function WeatherNotificationPopup() {
       setTips({
         title: temp >= 35 ? '🔥 高温暴晒预警！' : temp >= 30 ? '☀️ 今天好热呀~' : '☀️ 今日养宠小贴士',
         summary: temp >= 35
-          ? `${temp}°C 大太阳直射！柏油路面可能烫伤肉垫，建议傍晚遛弯~ (๑´ڡ`๑)`
+          ? `${temp}°C 大太阳直射！柏油路面可能烫伤肉垫，建议傍晚遛弯~ (*/ω\\*)`
           : temp >= 30
             ? `当前${temp}°C · 湿度${humidity}%，偏热注意防暑，点击查看详细护理建议`
             : `当前${temp}°C · 湿度${humidity}%，点击查看详细护理建议`,
