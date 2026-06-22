@@ -410,7 +410,115 @@ export default function HomePage() {
         )}
       </div>
 
+      {/* 就诊记录（病历） */}
+      <MedicalRecordCard petId={selectedPet?.id} />
+
       <div className="h-4" />
     </div>
   );
 }
+
+// ========== 就诊记录卡片组件 ==========
+function MedicalRecordCard({ petId }: { petId?: string }) {
+  const [records, setRecords] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!petId) { setLoading(false); return; }
+    fetch(`/api/medical-records?petId=${petId}`)
+      .then(r => r.json())
+      .then(data => {
+        setRecords(Array.isArray(data) ? data : []);
+      })
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, [petId]);
+
+  // 严重度映射
+  const severityMap: Record<string, { label: string; bg: string; text: string }> = {
+    normal:   { label: '正常', bg: 'bg-green-100', text: 'text-green-700' },
+    mild:     { label: '轻度', bg: 'bg-yellow-100', text: 'text-yellow-700' },
+    moderate: { label: '中度', bg: 'bg-orange-100', text: 'text-orange-700' },
+    severe:   { label: '严重', bg: 'bg-red-100', text: 'text-red-700' },
+  };
+
+  const statusMap: Record<string, { label: string; dot: string }> = {
+    active:    { label: '治疗中', dot: 'bg-yellow-500' },
+    recovered: { label: '已康复', dot: 'bg-green-500' },
+    chronic:   { label: '慢性病', dot: 'bg-blue-500' },
+  };
+
+  return (
+    <div className="mb-6">
+      <div className="flex items-center justify-between mb-3">
+        <h3 className="font-bold text-gray-800 text-sm flex items-center gap-1.5">
+          <Stethoscope className="w-4 h-4 text-red-500" /> 就诊记录
+        </h3>
+        <Link href="/records" className="text-xs text-primary-500 font-medium flex items-center gap-0.5">
+          全部记录 <ArrowRight className="w-3 h-3" />
+        </Link>
+      </div>
+
+      {!petId || records.length === 0 ? (
+        <div className="rounded-2xl bg-white border border-gray-100 p-5 text-center">
+          <Stethoscope className="w-8 h-8 mx-auto mb-2 text-gray-300" />
+          <p className="text-xs text-gray-400">暂无就诊记录</p>
+          <p className="text-[10px] text-gray-300 mt-1">在聊天中提到宠物健康问题会自动创建</p>
+        </div>
+      ) : (
+        <div className="space-y-2.5">
+          {records.slice(0, 3).map((record) => (
+            <Link key={record.id} href="/records"
+              className="block rounded-xl bg-white border border-gray-100 p-3 hover:shadow-md transition-shadow"
+            >
+              <div className="flex items-start gap-2.5">
+                {/* 图标 */}
+                <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-red-50 to-pink-50 flex items-center justify-center shrink-0 border border-red-100">
+                  <Stethoscope className="w-4 h-4 text-red-500" />
+                </div>
+
+                {/* 内容 */}
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-1.5 mb-0.5">
+                    <p className="font-medium text-gray-800 text-xs truncate">{record.disease_name}</p>
+                    <span className={`shrink-0 px-1.5 py-0.5 rounded-full text-[10px] font-medium ${severityMap[record.severity]?.bg || severityMap.mild.bg} ${severityMap[record.severity]?.text || severityMap.mild.text}`}>
+                      {severityMap[record.severity]?.label || '未知'}
+                    </span>
+                  </div>
+                  <p className="text-[10px] text-gray-400 line-clamp-1">{record.description}</p>
+                  <div className="flex items-center gap-2 mt-1.5">
+                    <Calendar className="w-3 h-3 text-gray-300" />
+                    <span className="text-[10px] text-gray-400">{record.detected_date}</span>
+                    <span className="flex items-center gap-1 ml-auto">
+                      <span className={`w-1.5 h-1.5 rounded-full ${statusMap[record.status]?.dot || statusMap.active.dot}`} />
+                      <span className="text-[10px] text-gray-400">{statusMap[record.status]?.label || record.status}</span>
+                    </span>
+                  </div>
+                  {/* 用药标签 */}
+                  {Array.isArray(record.medications) && record.medications.length > 0 && (
+                    <div className="flex flex-wrap gap-1 mt-1.5">
+                      {(record.medications as any[]).slice(0, 2).map((med: any, i: number) => (
+                        <span key={i} className="px-1.5 py-0.5 bg-purple-50 text-purple-600 text-[10px] rounded-md border border-purple-100">
+                          💊 {med.name}
+                        </span>
+                      ))}
+                      {(record.medications as any[]).length > 2 && (
+                        <span className="text-[10px] text-gray-400">+{(record.medications as any[]).length - 2}</span>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </Link>
+          ))}
+          {records.length > 3 && (
+            <p className="text-center text-[10px] text-gray-400 pt-1">
+              还有 {records.length - 3} 条记录 →
+            </p>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+// ========== 结束：就诊记录卡片 ==========
