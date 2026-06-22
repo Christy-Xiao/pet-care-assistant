@@ -329,7 +329,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   }, [dispatch]);
 
   // 检查天气并生成AI智能提醒 → 通过 PWA 推送
-  // 【场景二核心】天气 + 恐惧记忆联动：雷暴天自动提醒安抚怕打雷的宠物
+  // 【场景二核心】天气 + 恐惧记忆联动：高温/雷暴天自动提醒
   const checkWeatherNotifications = async () => {
     try {
       const weatherStr = localStorage.getItem('weatherData');
@@ -341,6 +341,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       const feelsLike = parseInt(weather?.current?.feelsLike) || temp;
       const humidity = parseInt(weather?.current?.humidity) || 50;
       const windSpeed = parseFloat(weather?.current?.windSpeed) || 5;
+      const weatherText = String(weather?.current?.text || '');
       
       const lastWeatherCheck = localStorage.getItem('lastWeatherNotification');
       const today = new Date().toDateString();
@@ -348,9 +349,27 @@ export function AppProvider({ children }: { children: ReactNode }) {
       // 每天只提醒一次（普通天气）
       if (lastWeatherCheck === today) return;
 
-      // ===== 【场景二】检查是否有雷暴/恶劣天气 + 恐惧记忆联动 =====
+      // ===== 【优先级1】高温/暴晒天气（广州夏天最常见） =====
+      const isHot = temp >= 33;  // 33°C以上视为高温
+      const isVeryHot = temp >= 35;
+      const isSunny = weatherText.includes('晴') || weatherText.includes('晴间') || [0, 1].includes(weatherCode);
+      
+      if (isHot && (isSunny || !weatherText.includes('雨') && !weatherText.includes('雷'))) {
+        // 高温晴天 → 显示防暑降温内容
+        await sendPWANotification(
+          isVeryHot ? '🔥 高温预警！今天大太阳暴晒，注意避暑~' : '☀️ 今天好热呀！带主子出门要注意防晒哦~',
+          isVeryHot
+            ? `${temp}°C 大太阳直射！体感${feelsLike}°C，柏油路面可能超过52°C会烫伤肉垫。建议：选择傍晚8点后遛弯、控制在15分钟内、随身带水给毛孩子补水、回家检查脚垫有没有红肿 🐾`
+            : `${temp}°C 晴天暖洋洋～不过对毛孩子来说已经偏热啦。建议选清晨或傍晚出门，时间20分钟左右，记得带水随时补哦~ (๑´ڡ`๑)`
+        );
+        localStorage.setItem('lastWeatherNotification', today);
+        console.log(`[AppContext] 天气PWA推送: 高温预警 ${temp}°C`);
+        return;
+      }
+
+      // ===== 【优先级2】雷暴/恶劣天气 + 恐惧记忆联动 =====
       const isStorm = [95, 96, 99].includes(weatherCode);           // 雷暴
-      const isThunder = weather?.current?.text?.includes('雷') || false; // 文字含"雷"
+      const isThunder = weatherText.includes('雷') || false;       // 文字含"雷"
       const isHeavyRain = [81, 82].includes(weatherCode);          // 暴雨
       
       if (isStorm || isThunder || isHeavyRain) {
@@ -417,9 +436,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
         if (isRainy) {
           pushTitle = '🌧️ 今天有雨，记得带伞哦';
           pushBody = '出门给毛孩子穿件雨衣吧！如果雨大的话就在家玩游戏也很好玩~ ☔';
-        } else if (temp > 35) {
-          pushTitle = '🔥 好热好热！主子也要避暑~';
-          pushBody = '柏油路面可能烫爪子！选择清晨或傍晚遛弯，时间控制在10-15分钟哦~ (๑´ڡ`๑)';
+        } else if (temp >= 33) {
+          pushTitle = temp >= 35 ? '🔥 高温暴晒！主子也要避暑~' : '☀️ 今天好热呀！注意防晒防中暑';
+          pushBody = `今天${temp}°C${weatherText.includes('晴') ? ' 大太阳直射' : ''}！体感约${feelsLike}°C。柏油路面可能烫爪子，建议选傍晚8点后遛弯、控制在15分钟内、随身带水给毛孩子补水降温~ 🐾`;
         } else if (temp < 5) {
           pushTitle = '❄️ 冷冷冷！抱紧你的小毛球';
           pushBody = '出门记得给毛孩子穿衣服保暖，选中午暖和的时候出去哦~ 🫶';
