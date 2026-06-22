@@ -498,7 +498,8 @@ const addPetKeywords = [
 // 查看宠物档案关键词
 const viewPetProfileKeywords = [
   '查看档案', '查看宠物', '查看宠物信息', '看宠物信息', '查看宠物档案',
-  '宠物档案', '宠物信息', '我的宠物', '宠物资料', '宠物信息', '宠物情况',
+  '宠物档案', '宠物资料',
+  // 注意：'我的宠物','宠物信息'(x2),'宠物情况' 已移除（与智能体思维链场景冲突）
   '想看.*宠物', '看看.*宠物', '查一下.*宠物', '.*长什么样', '.*什么样子'
 ];
 
@@ -2140,7 +2141,8 @@ ${parkRecommendation.crowdLevel === 'low' ? '🌟 目前人少，很适合带宠
 
     // 检测查看宠物档案意图
     let petProfileView = null;
-    if (hasViewPetProfileIntent(lastMessage) && pets.length > 0) {
+    // 宠物档案查看（不与智能体思维链冲突）
+    if (hasViewPetProfileIntent(lastMessage) && pets.length > 0 && !agentThinking) {
       // 提取具体宠物名称
       const mentionedPet = pets.find((p: any) => 
         lastMessage.includes(p.name) || 
