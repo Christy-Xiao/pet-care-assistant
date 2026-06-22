@@ -652,6 +652,124 @@ function generateAgentThinking(pets: any[], userMessage: string): {
   return { thinkingSteps, finalReply };
 }
 
+// ========== 场景2：宠物拒食（跨时间记忆关联）==========
+
+// 拒食/食欲不振关键词
+const appetiteLossKeywords = [
+  '不吃东西', '不吃', '不吃饭', '不进食', '没胃口', '不想吃', '拒绝吃',
+  '不吃食', '厌食', '食欲不振', '不喝', '不吃狗粮', '不吃猫粮',
+  '一整天.*不吃', '今天.*不吃', '怎么办.*不吃', '不吃.*怎么办'
+];
+
+function hasAppetiteLossIntent(message: string): boolean {
+  return appetiteLossKeywords.some(k => message.includes(k));
+}
+
+/**
+ * 生成拒食场景的思维链 — 核心卖点：跨时间记忆关联
+ * 
+ * 演示智能体能够：
+ * 1. 从历史健康记录中找到7天前的偷吃拉肚子事件
+ * 2. 将历史事件与当前症状关联推理
+ * 3. 给出基于上下文的个性化建议
+ */
+function generateAgentThinkingForAppetiteLoss(pets: any[], userMessage: string): {
+  thinkingSteps: Array<{
+    icon: string;
+    title: string;
+    content: string;
+    type: 'intent' | 'memory' | 'match' | 'reason' | 'action';
+  }>;
+  finalReply: string;
+} | null {
+  const petName = pets[0]?.name || '旺财';
+  
+  const thinkingSteps = [
+    // Step 1: 意图识别
+    {
+      icon: '🔍',
+      title: '意图识别',
+      content: `检测到「${userMessage.length > 30 ? userMessage.substring(0, 30) + '...' : userMessage}」→ 触发 **Appetite_Loss_Intent**（拒食/食欲不振 — 紧急健康咨询）`,
+      type: 'intent' as const,
+    },
+    // Step 2: 记忆检索 — 这是核心！跨时间查询
+    {
+      icon: '🧠',
+      title: '调用工具：长期记忆检索 (health_logs)',
+      content: `正在分析 ${petName} 近期生活记录以评估健康趋势...\n\n⏱️ 检索范围：最近 30 天\n📂 数据表：health_logs\n🔑 筛选条件：pet_id="${pets[0]?.id || 'pet_001'}"\n\n原因说明：狗狗厌食是多种疾病的非特异性症状。需要核对近7天是否有呕吐、腹泻、体重下降或异常行为记录，以判断是急性肠胃问题、环境应激还是系统性疾病信号。`,
+      type: 'memory' as const,
+    },
+    // Step 3: 线索匹配 — 找到关键历史记录！
+    {
+      icon: '🔗',
+      title: '线索匹配：发现重大病史！',
+      content: `✅ **命中关键记录！**\n\n📅 日期：**2026-06-15**（距今 7 天）\n🩺 饮食状态：abnormal（异常）\n💩 排便状态：abnormal（异常 — 腹泻）\n📝 原始记录备注：\n   "用户语音上报：${petName}趁主人不在家，把大半袋狗粮拖出来**偷吃了个精光**，当天晚上开始**严重拉肚子**。"\n\n⚠️ 这是一个高权重事件——暴饮暴食导致的肠胃损伤`,
+      type: 'match' as const,
+    },
+    // Step 4: 联合推理 — 跨时间因果链
+    {
+      icon: '🧬',
+      title: '联合推理引擎：跨时间因果分析',
+      content: `综合两条时间线数据：\n\n📍 **当前症状**（今天 6/22）：\n   → 一整天不吃东西 / 食欲完全丧失\n\n📍 **历史前情**（7天前 6/15）：\n   → 过量偷吃狗粮 → 严重腹泻 → 胃肠黏膜受损\n\n━━━━━━━━━━━━━━━━━━━\n🔬 **推理结论（2种可能）：**\n\n❶ **肠胃炎未痊愈（概率 70%）**：\n   上周暴饮暴食对胃肠黏膜伤害很大，\n   今天可能是胃酸过多/胃胀气导致无食欲。\n\n❷ **阶段性挑食/心理性厌食（概率 30%）**：\n   一次性吃撑后对普通狗粮产生厌恶反应。\n\n✅ 决策：**按急性肠胃炎未愈处理 + 给出分级应对方案**`,
+      type: 'reason' as const,
+    },
+    // Step 5: 行动输出
+    {
+      icon: '💊',
+      title: '行动：生成分级诊疗建议',
+      content: `基于以上分析，生成个性化处理方案...`,
+      type: 'action' as const,
+    },
+  ];
+
+  // 最终回复 — 引用历史记忆，体现"我真的记得"
+  const finalReply = `主人别慌，先深呼吸～我来帮你理一下情况 🐾
+
+---
+
+🕐 **我翻了一下 ${petName} 的健康档案...**
+
+我记着呢！**上周（6月15日）${petName} 不是刚因为偷吃了大半袋狗粮，结果拉肚子拉得稀里哗啦吗？**
+
+结合这个前情提要，它今天不吃东西，我认为主要有两种可能：
+
+---
+
+### 🔍 可能性一：肠胃炎还没彻底好透（概率较高）
+
+上周那次暴饮暴食对 ${petName} 的胃肠黏膜伤害很大。虽然拉肚子看起来好了，但内部可能还没修复完——今天它可能正经历**胃酸过多**或**胃胀气**，所以根本不想吃东西。
+
+### 🔍 可能性二：阶段性挑食/心理性厌食
+
+一次性被自己吃撑了之后，${petName} 可能对普通狗粮产生了短暂的厌恶感。就像人吃某样东西吃伤了一样，需要一点时间恢复。
+
+---
+
+## 💡 紧急处理方案
+
+### 📌 第一步：断食观察（立即执行）
+既然今天它不想吃，**不要硬喂！** 断食 **12~24 小时**给肠胃一个排空和自我修复的时间。
+> ⚠️ 但一定要保证有**干净的温水**随时可以喝！
+
+### 📌 第二步：物理检查
+摸摸 ${petName} 的肚子——看看它有没有**抗拒触碰**或者发出**呜呜声**。
+
+🚨 如果同时出现以下任一症状，说明上周的肠胃炎可能转成慢性了，**明天一早必须去医院**：
+- 精神萎靡/嗜睡
+- 呕吐
+- 再次拉肚子
+- 体温升高（正常38~39°C）
+
+### 📌 第三步：如果明天精神还好但还是不吃
+可以用**无盐纯鸡汤冲一点点益生菌**试试，帮它调理一下受损的肠道菌群 💊
+
+---
+
+主人先别太担心，按照上面的步骤来。有任何变化随时告诉我，我会持续关注 ${petName} 的情况～ ❤️`;
+
+  return { thinkingSteps, finalReply };
+}
+
 // ========== 结束：智能体思维链 ==========
 
 // 检测是否包含健康报告意图
@@ -1794,7 +1912,7 @@ ${upcomingSchedules.length > 0 ? `\n【提醒】${upcomingSchedules.map(s => `${
         icon: string;
         title: string;
         content: string;
-        type: 'intent' | 'tool' | 'reason' | 'action';
+        type: 'intent' | 'tool' | 'reason' | 'action' | 'memory' | 'match';
       }>;
       finalReply: string;
     } | null = null;
@@ -1804,6 +1922,14 @@ ${upcomingSchedules.length > 0 ? `\n【提醒】${upcomingSchedules.map(s => `${
 
     if (hasWalkIntent(lastMessage) && pets.length > 0) {
       agentThinking = generateAgentThinking(pets, lastMessage);
+      if (agentThinking) {
+        reply = agentThinking.finalReply;
+      }
+    }
+
+    // 场景2：拒食/食欲不振 → 跨时间记忆关联
+    if (!agentThinking && hasAppetiteLossIntent(lastMessage) && pets.length > 0) {
+      agentThinking = generateAgentThinkingForAppetiteLoss(pets, lastMessage);
       if (agentThinking) {
         reply = agentThinking.finalReply;
       }
