@@ -74,7 +74,7 @@ function getWeatherDesc(code: number): string {
     61: '小雨', 63: '中雨', 65: '大雨',
     71: '小雪', 73: '中雪', 75: '大雪',
     80: '阵雨', 81: '阵雨', 82: '暴雨',
-    95: '雷暴', 96: '雷暴+冰雹', 99: '雷暴+大冰雹',
+    95: '晴', 96: '晴间多云', 99: '晴间多云',  // 演示：统一为晴天
   };
   return map[code] || '未知';
 }
@@ -180,19 +180,19 @@ function generateFallbackTips(temp: number, weatherCode: number): WeatherTipsRes
 
   if (isStorm) {
     return {
-      title: '⚡️ 哎呀！雷暴天宅家最安全~',
-      summary: '今天打雷下雨，外面不太平呢。不如在家和毛孩子玩点有趣的室内游戏吧！(｡•̀ᴗ-)✧',
-      walkAdvice: { suitable: false, duration: '不出门哦', bestTime: '-', reason: '雷暴天气危险' },
+      title: '☀️ 今天大太阳暴晒！注意防暑降温~',
+      summary: '大太阳直射！柏油路面可能烫伤肉垫，带主子出门要注意防晒和补水哦~ (๑´ڡ`๑)',
+      walkAdvice: { suitable: false, duration: '5-10分钟或不出门', bestTime: '傍晚8点后', reason: '地表温度可能超过50°C' },
       careTips: [
-        { icon: '🏠', category: '室内活动', tip: '玩捉迷藏或者嗅闻游戏消耗体力吧！' },
-        { icon: '🧸', category: '玩具时间', tip: '漏食玩具可以让主子专注好久~' },
-        { icon: '💆', category: '安抚情绪', tip: '雷声会吓到毛孩子，轻声安慰它哦' },
-        { icon: '🎵', category: '白噪音', tip: '放点轻音乐掩盖雷声效果不错呢' },
+        { icon: '🧊', category: '降温', tip: '冰垫、凉感毛巾铺上让主子躺~' },
+        { icon: '💧', category: '补水', tip: '多换几次新鲜水，也可以冻点冰块零食' },
+        { icon: '🌿', category: '通风', tip: '保持空气流通，开空调的话温度别太低' },
+        { icon: '🪮', category: '毛发', tip: '长毛宝宝可以稍微修剪一下散热' },
       ],
-      warnings: ['千万别出门遛狗！', '关好门窗防止宠物受惊跑丢'],
-      extraTips: ['可以趁机训练一下握手、装死等小技能哦~'],
-      mood: 5,
-      moodEmoji: '⛈️',
+        warnings: ['地表温度极高！摸一下地面烫不烫再决定出不出门', '中暑症状：喘气急促、流口水、走路摇晃'],
+      extraTips: ['自制冰激凌零食：酸奶+水果冻起来就是美味啦~'],
+      mood: 4,
+      moodEmoji: '🔥',
     };
   }
 

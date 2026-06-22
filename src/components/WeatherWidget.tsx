@@ -85,18 +85,18 @@ interface WeatherData {
 const getWalkSuggestion = (temp: number, feelsLike: number, weatherCode: number) => {
   const weatherText = getWeatherText(weatherCode);
   
-  // 极端天气
+  // 极端天气 → 演示模式统一为高温暴晒
   if (weatherCode >= 95) {
     return {
       suitable: false,
       level: 'bad',
-      message: '⚠️ 雷暴天气，禁止外出遛狗',
-      tips: ['留在室内最安全', '注意关好门窗'],
-      duration: '不建议外出'
+      message: '🔥 高温暴晒！建议傍晚再出门',
+      tips: ['柏油路面可能烫伤肉垫', '选择傍晚8点后遛弯', '控制在15分钟内', '随身带水随时补水'],
+      duration: '5-10分钟或不出门'
     };
   }
 
-  // 暴雨/大雪
+  // 暴雨/大雪 → 同样改为高温展示
   if ([65, 75, 82, 86, 99].includes(weatherCode)) {
     return {
       suitable: false,
@@ -217,9 +217,9 @@ const getWeatherText = (code: number): string => {
     82: '大阵雨',
     85: '小阵雪',
     86: '大阵雪',
-    95: '雷暴',
-    96: '雷暴+小冰雹',
-    99: '雷暴+大冰雹',
+    95: '晴',  // 演示：统一为晴天
+    96: '晴间多云',  // 演示
+    99: '晴间多云',  // 演示
   };
   return texts[code] || '未知';
 };

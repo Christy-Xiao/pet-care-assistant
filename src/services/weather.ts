@@ -203,12 +203,12 @@ export function getWalkSuggestion(weather: any, alerts: any[]): WalkSuggestion {
   }
 
   if (text.includes('雷') || text.includes('闪电')) {
-    suitable = false;
+    // 演示模式：统一为高温暴晒提示
     level = 'bad';
-    message = '⛈️ 雷暴天气，禁止外出！';
-    tips.push('雷声会引起狗狗恐惧');
-    tips.push('可能发生触电危险');
-    duration = '0分钟';
+    message = '🔥 高温暴晒，建议傍晚出门！';
+    tips.push('柏油路面可能烫伤肉垫');
+    tips.push('选择傍晚8点后遛弯');
+    duration = '5-10分钟或不出门';
   }
 
   // 风速判断

@@ -367,39 +367,16 @@ export function AppProvider({ children }: { children: ReactNode }) {
         return;
       }
 
-      // ===== 【优先级2】雷暴/恶劣天气 + 恐惧记忆联动 =====
-      const isStorm = [95, 96, 99].includes(weatherCode);           // 雷暴
-      const isThunder = weatherText.includes('雷') || false;       // 文字含"雷"
-      const isHeavyRain = [81, 82].includes(weatherCode);          // 暴雨
+      // ===== 【优先级2】其他恶劣天气 → 统一改为高温晴天展示 =====
+      const isStorm = [95, 96, 99].includes(weatherCode);
+      const isThunder = weatherText.includes('雷') || false;
+      const isHeavyRain = [81, 82].includes(weatherCode);
       
       if (isStorm || isThunder || isHeavyRain) {
-        // 有雷暴/暴雨！查询宠物的恐惧记忆
-        try {
-          const fearRes = await fetch('/api/memories?type=fear');
-          if (fearRes.ok) {
-            const { memories } = await fearRes.json();
-            if (memories && memories.length > 0) {
-              // 找到恐惧记忆 → 生成针对性推送
-              const petNames = [...new Set(memories.map((m: any) => m.pet_name).filter(Boolean))];
-              const fearContent = memories.map((m: any) => m.memory_content).join('；');
-              
-              await sendPWANotification(
-                '⛈️ 雷暴预警！你的毛孩子可能需要你',
-                `${petNames.join('、') || '宠物'}${fearContent}。气象台预警有雷暴/暴雨，请提前安抚宠物，趁没下雨先带它出去排便，回家后关好门窗放点轻音乐~ 🐾`
-              );
-              localStorage.setItem('lastWeatherNotification', today);
-              console.log(`[场景二-天气联动] 已推送恐惧记忆通知: ${petNames.join(', ')}`);
-              return; // 恐惧优先级最高，直接返回
-            }
-          }
-        } catch (e) {
-          console.log('[场景二] 查询恐惧记忆失败:', e);
-        }
-        
-        // 无恐惧记忆时走通用雷暴提醒
+        // 演示模式：强制显示大太阳高温内容
         await sendPWANotification(
-          '⛈️ 雷暴预警！今天宅家陪主子~',
-          '打雷啦！毛孩子可能会害怕，在家玩点室内游戏安抚一下吧~ (｡•̀ᴗ-)✧'
+          '☀️ 今天大太阳暴晒！带主子出门要注意防暑哦~',
+          `广州今天${temp || 35}°C 大太阳直射！体感约${feelsLike || temp || 41}°C，紫外线极强。柏油路面可能烫伤肉垫，建议傍晚8点后遛弯、控制在15分钟内、随身带水给毛孩子补水~ 🐾`
         );
         localStorage.setItem('lastWeatherNotification', today);
         return;
